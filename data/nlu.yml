@@ -1,0 +1,162 @@
+version: "3.1"
+
+nlu:
+- intent: greet
+  examples: |
+    - hey
+    - hello
+    - hi
+    - hello there
+    - good morning
+    - good evening
+    - moin
+    - hey there
+    - let's go
+    - hey dude
+    - goodmorning
+    - goodevening
+    - good afternoon
+
+- intent: goodbye
+  examples: |
+    - cu
+    - good by
+    - cee you later
+    - good night
+    - bye
+    - goodbye
+    - have a nice day
+    - see you around
+    - bye bye
+    - see you later
+
+- intent: affirm
+  examples: |
+    - yes
+    - y
+    - indeed
+    - of course
+    - that sounds good
+    - correct
+
+- intent: deny
+  examples: |
+    - no
+    - n
+    - never
+    - I don't think so
+    - don't like that
+    - no way
+    - not really
+
+- intent: mood_great
+  examples: |
+    - perfect
+    - great
+    - amazing
+    - feeling like a king
+    - wonderfulnlu:
+- intent: search_song
+  examples: |
+    - Find me the song [Bohemian Rhapsody](song)
+    - Can you look for [Hotel California](song)?
+    - Search for [Imagine](song)
+
+- intent: create_playlist
+  examples: |
+    - Create a new playlist called [Rock Hits](playlist_name)
+    - Start a playlist named [Chill Vibes](playlist_name)
+
+- intent: add_to_playlist
+  examples: |
+    - Add [Stairway to Heaven](song) to the [Rock Classics](playlist_name) playlist
+    - Put [Yesterday](song) in the [Oldies](playlist_name) playlist
+    - I am feeling very good
+    - I am great
+    - I am amazing
+    - I am going to save the world
+    - super stoked
+    - extremely good
+    - so so perfect
+    - so good
+    - so perfect
+
+- intent: mood_unhappy
+  examples: |
+    - my day was horrible
+    - I am sad
+    - I don't feel very well
+    - I am disappointed
+    - super sad
+    - I'm so sad
+    - sad
+    - very sad
+    - unhappy
+    - not good
+    - not very good
+    - extremly sad
+    - so saad
+    - so sad
+
+- intent: bot_challenge
+  examples: |
+    - are you a bot?
+    - are you a human?
+    - am I talking to a bot?
+    - am I talking to a human?
+
+- intent: search_song
+  examples: |
+    - Search for the song [Nothing Else Matters](song)
+    - Can you get me [Back in Black](song)?
+    - Find me [Enter Sandman](song) by [Metallica](artist)
+    - Search for [Bad Company](song) by [Five Finger Death Punch](artist)
+    - Look for [Livin' on a Prayer](song) [Bon Jovi](artist)
+
+- intent: search_artist
+  examples: |
+    - Find me songs by [Queen](artist)
+    - Can you get me songs by [The Beatles](artist)?
+    - Search for songs by [Led Zeppelin](artist)
+    - Look for songs by [The Rolling Stones](artist)
+    - Find me songs by [The Eagles](artist)
+
+- intent: show_playlists
+  examples: |
+    - Show me my playlists
+    - Display my playlists
+    - List my playlists
+    - Show playlists
+    - What playlists do I have?
+    - What are my playlists?
+
+- intent: show_playlist
+  examples: |
+    - Show me the [Rock Hits](playlist_name) playlist
+    - Display the [Chill Vibes](playlist_name) playlist
+    - Get me the [Pop Hits](playlist_name) playlist
+
+- intent: create_playlist
+  examples: |
+    - Create a playlist called [Rock Classics](playlist_name)
+    - Make a new playlist named [Chill Vibes](playlist_name)
+    - Create [Pop Hits](playlist_name)
+
+- intent: delete_playlist
+  examples: |
+    - Delete the playlist [Rock Hits](playlist_name)
+    - Remove the playlist [Chill Vibes](playlist_name)
+    - Delete [Pop Hits](playlist_name)
+
+- intent: add_to_playlist
+  examples: |
+    - Add [Bohemian Rhapsody](song) to the [Rock Hits](playlist_name) playlist
+    - Put [Hotel California](song) to the [Oldies](playlist_name) playlist
+    - Add [Livin' on a Prayer](song) in [Rock Classics](playlist_name)
+
+- intent: delete_from_playlist
+  examples: |
+    - Remove [Bohemian Rhapsody](song) from the [Rock Hits](playlist_name) playlist
+    - Delete [Hotel California](song) from the [Oldies](playlist_name) playlist
+    - Remove [Livin' on a Prayer](song) from [Rock Classics](playlist_name)
+

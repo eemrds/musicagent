@@ -1,10 +1,12 @@
+import os
 from typing import Optional, Union
-from pymongo import MongoClient
-import sqlite3
 
-CLIENT = MongoClient(
-    "mongodb+srv://martinerik99:sN8b0mTiy7SlfVwu@dat640.ehx2a.mongodb.net/?retryWrites=true&w=majority&appName=DAT640"
-)
+from pymongo import MongoClient
+from dotenv import load_dotenv
+
+load_dotenv()
+
+CLIENT = MongoClient(os.getenv("MONGO_URI"))
 DB = CLIENT["musicDB"]
 USERS_COLLECTION = DB["users"]
 SONG_COLLECTION = DB["songs"]
@@ -179,124 +181,41 @@ def update_db(func):
     return wrapper
 
 
-class UserDB:
-    """User database class"""
+class MusicDB:
+    """Music database class"""
 
-    def __init__(self, username: str, email: Optional[str] = None):
-        self.username = username
-        self.email = email
-        self.user = self.get_user()
+    def __init__(self, user: User):
+        self.user = user
         self.playlists = self.get_playlists()
 
-    def get_user(self) -> User:
-        """Get user by username.
-
-        Returns:
-            User: User object.
-        """
-        db_user = USERS_COLLECTION.find_one({"username": self.username})
-        if not db_user:
-            return None
-        return User(
-            username=db_user["username"],
-            email=db_user["email"],
-            playlists=db_user["playlists"],
-        )
-
-    def get_conv(self) -> list[dict]:
-        """Get conversation from the database.
-
-        Returns:
-            Conversation object.
-        """
-        db_user = USERS_COLLECTION.find_one({"username": self.username})
-        if not db_user:
-            return None
-        return db_user.get("conversation", [])
-
-    def store_conv(self, new_conv: dict):
-        """Store conversation in the database.
-
-        Args:
-            new_conv: Conversation object.
-        """
-        conv = self.get_conv()
-        if not conv:
-            conv = []
-        conv.append(new_conv)
-        USERS_COLLECTION.update_one(
-            {"username": self.username},
-            {"$set": {"conversation": conv}},
-        )
-
-    def add_user(self) -> User:
-        """Add user to the database.
-
-        Returns:
-            User: User object.
-        """
-        db_user = USERS_COLLECTION.find_one({"username": self.user})
-        if db_user:
-            raise ValueError("User already exists.")
-
-        user = User(username=self.username, email=self.email)
-        USERS_COLLECTION.insert_one(user.dump())
-        return user
-
     def get_playlists(self) -> Playlists:
-        """Get playlists of the user.
-
-        Returns:
-            List of playlists.
-        """
+        """Get playlists of the user."""
         return self.user.playlists if self.user else None
 
     def get_playlist(self, playlist_name: str) -> Playlist:
-        """Get playlist by name.
-
-        Args:
-            playlist_name: Name of the playlist.
-
-        Returns:
-            Playlist: Playlist object.
-        """
+        """Get playlist by name."""
         if playlist_name not in self.playlists:
             raise ValueError("Playlist not found.")
         return self.playlists.get(playlist_name)
 
     @update_db
     def add_playlist(self, playlist_name: str) -> Playlists:
-        """Add playlist to the user.
-
-        Args:
-            playlist: Playlist object.
-
-        Returns:
-            List of playlists.
-        """
+        """Add playlist to the user."""
         if playlist_name in self.playlists:
             raise ValueError("Playlist already exists.")
         return self.playlists.add(Playlist(playlist_name))
 
     @update_db
-    def remove_playlist(self, playlist_name: str) -> Playlists:
-        """Remove playlist from the user.
-
-        Args:
-            playlist_name: Name of the playlist.
-        """
-        return self.playlists.remove(playlist_name)
+    def remove_playlist(self, playlist_name: str) -> str:
+        """Remove playlist from the user."""
+        self.playlists.remove(playlist_name)
+        return f"Playlist {playlist_name} deleted."
 
     @update_db
     def get_song_from_playlist(
         self, playlist_name: str, song_name: str
     ) -> Song:
-        """Get song from the playlist.
-
-        Args:
-            playlist_name: Name of the playlist.
-            song_name: Name of the song.
-        """
+        """Get song from the playlist."""
         if playlist_name not in self.playlists:
             raise ValueError("Playlist not found.")
         return self.playlists.get(playlist_name).songs.get(song_name)
@@ -305,12 +224,7 @@ class UserDB:
     def add_song_to_playlist(
         self, song: Union[dict, Song], playlist_name: str
     ) -> list[Playlist]:
-        """Add song to the playlist.
-
-        Args:
-            song: Song object as dict.
-            playlist_name: Name of the playlist.
-        """
+        """Add song to the playlist."""
         if playlist_name not in self.playlists:
             raise ValueError("Playlist not found.")
         return self.playlists.get(playlist_name).add(
@@ -319,28 +233,16 @@ class UserDB:
 
     @update_db
     def remove_song_from_playlist(
-        self, playlist_name: str, song_name: str
+        self, song_name: str, playlist_name: str
     ) -> list[Playlist]:
-        """Remove song from the playlist.
-
-        Args:
-            playlist_name: Name of the playlist.
-            song_name: Name of the song.
-        """
+        """Remove song from the playlist."""
         if playlist_name not in self.playlists:
             raise ValueError("Playlist not found.")
         return self.playlists.get(playlist_name).remove(song_name)
 
 
-def song_lookup(song_name: str, artist: Optional[str] = None) -> Song:
-    """Lookup song by name.
-
-    Args:
-        song_name: Name of the song.
-
-    Returns:
-        Song: Song object.
-    """
+def search_song(song_name: str, artist: Optional[str] = None) -> Song:
+    """Search for song by name."""
     query = {
         "title": {
             "$regex": song_name,
@@ -355,12 +257,48 @@ def song_lookup(song_name: str, artist: Optional[str] = None) -> Song:
         }
 
     results = list(SONG_COLLECTION.find(query))
+    if not results:
+        return Songs([])
     for result in results:
         result.pop("_id")
-    songs = Songs(results)
-    return songs
+    return Songs(results)
 
 
-if __name__ == "__main__":
+def search_artist(artist: str) -> Songs:
+    """Search for songs by artist."""
+    query = {
+        "artist": {
+            "$regex": artist,
+            "$options": "i",
+        },
+    }
 
-    print(song_lookup("gat"))
+    results = list(SONG_COLLECTION.find(query))
+    if not results:
+        return Songs([])
+    for result in results:
+        result.pop("_id")
+    return Songs(results)
+
+
+def get_user(username) -> User:
+    """Get user by username."""
+    db_user = USERS_COLLECTION.find_one({"username": username})
+    if not db_user:
+        raise ValueError("User not found.")
+    return User(
+        username=db_user["username"],
+        email=db_user["email"],
+        playlists=db_user["playlists"],
+    )
+
+
+def add_user(username: str, email: Optional[str]) -> User:
+    """Add user to the database."""
+    db_user = USERS_COLLECTION.find_one({"username": username})
+    if db_user:
+        raise ValueError("User already exists.")
+
+    user = User(username=username, email=email)
+    USERS_COLLECTION.insert_one(user.dump())
+    return user

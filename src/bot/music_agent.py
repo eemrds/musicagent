@@ -1,22 +1,15 @@
 """Music agent.
 
-Agent that lets the user interract with a muscic database by asking questions 
-about music, artists, albums, etc.
-
-It also allows the user to create playlists and add songs to them using the chat 
-agent.
-
+Agent that lets the user interract with a muscic database through commands or
+natural language.
 """
 
-from typing import Optional
-from dialoguekit.core.annotated_utterance import AnnotatedUtterance
-from dialoguekit.core.dialogue_act import DialogueAct
-from dialoguekit.core.utterance import Utterance
-from dialoguekit.participant.agent import Agent
-from dialoguekit.participant.participant import DialogueParticipant
+import requests
 
-from src.db import UserDB, song_lookup
+from src.bot.actions import *
+from src.db import MusicDB, search_artist, search_song
 
+RASA_SERVER_URL = "http://localhost:5005/webhooks/rest/webhook"
 WELCOME_MESSAGE = "Hello, I'm MusicAgent. What can I help u with?"
 GOODBYE_MESSAGE = "It was nice talking to you. Bye"
 NOT_LOGGED_IN_MESSAGE = "You are not logged in. Please login or register by using /login or /register."
@@ -34,27 +27,17 @@ Available commands:
 """
 
 
-class MusicAgent(Agent):
-    def __init__(self, id: str):
+class MusicAgent:
+    def __init__(self, user: MusicDB):
         """Music agent.
 
-        Agent that lets the user interract with a muscic database by asking
-        questions about music, artists, albums, etc. It also allows the user to
-        create playlists and add songs to them using the chat agent.
+        Agent that lets the user interract with a muscic database through
+        commands or natural language.
 
         Args:
-            id: Agent id.
+            user: UserDB instance.
         """
-        super().__init__(id)
-        self.user = UserDB("erik")
-        # self.nlu = NLU()
-
-    def welcome(self) -> None:
-        """Sends the agent's welcome message."""
-        utterance = AnnotatedUtterance(
-            WELCOME_MESSAGE, participant=DialogueParticipant.AGENT
-        )
-        self._dialogue_connector.register_agent_utterance(utterance)
+        self.user = user
 
     def help_cmd(self) -> str:
         """Shows help message."""
@@ -64,34 +47,18 @@ class MusicAgent(Agent):
         """Exits the chat."""
         return GOODBYE_MESSAGE
 
-    def clarify_utterance(self, msg: str) -> str:
-        """Clarifies the user's utterance.
-
-        Args:
-            msg: User utterance.
-
-        Returns:
-            Clarified utterance.
-        """
-        response = AnnotatedUtterance(
-            f"{self._id}: {msg}",
-            participant=DialogueParticipant.AGENT,
-        )
-        self._dialogue_connector.register_agent_utterance(response)
-        return input(f"{msg}\n")
-
-    def add_song_cmd(self, arg: str) -> tuple[str, Optional[str]]:
+    def add_song_cmd(self, song_name: str, playlist_name: str) -> str:
         """Adds a song to a playlist.
 
         Args:
-            arg: Command argument.
+            song_name: Name of the song.
+            playlist_name: Name of the playlist.
 
         Returns:
             Tuple containing the response.
         """
-        song_name, playlist_name = arg.split(" ")
         playlist = self.user.get_playlist(playlist_name)
-        song = song_lookup(song_name)
+        song = search_song(song_name)
         selected_song = None
 
         if len(song) > 1:
@@ -107,68 +74,79 @@ class MusicAgent(Agent):
             return f"Song {song_name} not found", None
 
         self.user.add_song_to_playlist(selected_song, playlist.name)
-        return f"Song {selected_song} added to {playlist_name}", None
+        return f"Song {selected_song} added to {playlist_name}"
 
-    def remove_song_cmd(self, arg: str) -> tuple[str, Optional[str]]:
+    def remove_song_cmd(self, song_name: str, playlist_name: str) -> str:
         """Removes a song from a playlist.
 
         Args:
-            arg: Command argument.
+            song_name: Name of the song.
+            playlist_name: Name of the playlist.
 
         Returns:
             Tuple containing the response.
         """
-        song_name, playlist_name = arg.split(" ")
         playlist = self.user.get_playlist(playlist_name)
-        song = song_lookup(song_name)
+        song = self.user.get_song_from_playlist(playlist_name, song_name)
         self.user.remove_song_from_playlist(song, playlist)
-        return f"Song {song_name} removed from {playlist_name}", None
+        return f"Song {song_name} removed from {playlist_name}"
 
-    def list_playlists_cmd(self) -> tuple[str, Optional[str]]:
+    def list_playlists_cmd(self) -> dict:
         """Lists all available playlists.
 
         Returns:
-            Tuple containing the response.
+            Dict of playlists.
         """
         playlists = self.user.get_playlists()
-        return playlists.dump(), None
+        return playlists.dump()
 
-    def create_playlist_cmd(self, arg: str) -> tuple[str, Optional[str]]:
+    def create_playlist_cmd(self, playlist_name: str) -> str:
         """Creates a new playlist.
 
         Args:
-            arg: Command argument.
+            playlist_name: Name of the playlist.
 
         Returns:
             Tuple containing the response.
         """
-        self.user.add_playlist(arg)
-        return f"Playlist {arg} created", None
+        self.user.add_playlist(playlist_name)
+        return f"Playlist {playlist_name} created"
 
-    def delete_playlist_cmd(self, arg: str) -> tuple[str, Optional[str]]:
+    def delete_playlist_cmd(self, playlist_name: str) -> str:
         """Deletes a playlist.
 
         Args:
-            arg: Command argument.
+            playlist_name: Name of the playlist.
 
         Returns:
             Tuple containing the response.
         """
-        self.user.remove_playlist(arg).dump()
-        return f"Playlist {arg} deleted", None
+        self.user.remove_playlist(playlist_name).dump()
+        return f"Playlist {playlist_name} deleted"
 
-    def list_songs_cmd(self, arg: str) -> tuple[str, Optional[str]]:
+    def list_songs_cmd(self, playlist_name: str) -> str:
         """Lists all songs in a playlist.
+
+        Args:
+            playlist_name: Name of the playlist.
+
+        Returns:
+            Tuple containing the response.
+        """
+        return self.user.playlists.get(playlist_name).songs.dump()
+
+    def search_song_cmd(self, arg: str) -> List[dict]:
+        """Looks up a query in the music database.
 
         Args:
             arg: Command argument.
 
         Returns:
-            Tuple containing the response.
+            Dict of songs.
         """
-        return self.user.playlists.get(arg).songs.dump(), None
+        return search_song(arg).dump()
 
-    def lookup_cmd(self, arg: str) -> tuple[str, Optional[str]]:
+    def search_artist_cmd(self, arg: str) -> List[dict]:
         """Looks up a query in the music database.
 
         Args:
@@ -177,129 +155,15 @@ class MusicAgent(Agent):
         Returns:
             Tuple containing the response.
         """
-        songs = song_lookup(arg)
-        if len(songs) == 1:
-            return songs.dump(), None
+        return search_artist(arg).dump()
 
-        return f"Found {len(songs)} songs.\n{songs.dump()}", None
-
-    def login_cmd(self, arg: str) -> tuple[str, Optional[str]]:
-        """Logs in the user.
+    def get_response(self, msg: str) -> str:
+        """Get response to a message.
 
         Args:
-            arg: Command argument.
+            msg: User message.
 
         Returns:
             Tuple containing the response.
         """
-        user = UserDB(arg)
-        self.user = user
-        return f"Logged in as {arg}", None
-
-    def register_cmd(self, arg: str) -> tuple[str, Optional[str]]:
-        """Registers the user.
-
-        Args:
-            arg: Command argument.
-
-        Returns:
-            Tuple containing the response.
-        """
-        data = arg.split(" ")
-        if len(data) == 1:
-            username = data[0]
-            email = None
-        else:
-            username = data[0]
-            email = data[1]
-
-        user = UserDB(username, email).add_user()
-        self.user = user
-        return f"Registered as {username}", None
-
-    # def get_response(self, text: str) -> tuple[str, Optional[str]]:
-    #     """Gets response from the NLU model.
-
-    #     Args:
-    #         text: User utterance.
-
-    #     Returns:
-    #         Tuple containing the response.
-    #     """
-    #     nlu =
-
-    def receive_utterance(self, utterance: Utterance) -> None:
-        """Gets called each time there is a new user utterance.
-
-        If command is detected, specific command is executed. Otherwise,
-        nlu model is used to get the response.
-
-        Available commands:
-            - /help: Shows help message.
-            - /exit: Exits the chat.
-            - /add_song <song_name> <playlist_name>: Adds a song to a playlist.
-            - /remove_song <song_name> <playlist_name>: Removes a song from a playlist.
-            - /create_playlist <playlist_name>: Creates a new playlist.
-            - /delete_playlist <playlist_name>: Deletes a playlist.
-            - /list_playlists: Lists all available playlists.
-            - /list_songs <playlist_name>: Lists all songs in a playlist.
-            - /lookup <query>: Looks up a query in the music database.
-            - /login <username>: Logs in the user.
-            - /register <username> *<email>*: Registers the user.
-
-        Args:
-            utterance: User utterance.
-        """
-        cmd = None
-        extra = None
-        if (
-            not self.user
-            and "/login" not in utterance.text
-            and "/register" not in utterance.text
-        ):
-            result = NOT_LOGGED_IN_MESSAGE
-            response = AnnotatedUtterance(
-                f"{self._id}: {result}",
-                participant=DialogueParticipant.AGENT,
-            )
-            self._dialogue_connector.register_agent_utterance(response)
-            return
-
-        if utterance.text[0] == "/":
-            cmd = utterance.text.split(" ")[0]
-            arg = " ".join(utterance.text.split(" ")[1:])
-
-        if cmd == "/help":
-            result = self.help_cmd()
-        elif cmd == "/exit":
-            result = self.goodbye()
-        elif cmd == "/add_song":
-            result, extra = self.add_song_cmd(arg)
-        elif cmd == "/remove_song":
-            result, extra = self.remove_song_cmd(arg)
-        elif cmd == "/create_playlist":
-            result, extra = self.create_playlist_cmd(arg)
-        elif cmd == "/delete_playlist":
-            result, extra = self.delete_playlist_cmd(arg)
-        elif cmd == "/list_playlists":
-            result, extra = self.list_playlists_cmd()
-        elif cmd == "/list_songs":
-            result, extra = self.list_songs_cmd(arg)
-        elif cmd == "/lookup":
-            result, extra = self.lookup_cmd(arg)
-        elif cmd == "/login":
-            result, extra = self.login_cmd(arg)
-        elif cmd == "/register":
-            result, extra = self.register_cmd(arg)
-        else:
-            # NLU model
-            result, extra = self.get_response(utterance.text)
-
-        if extra:
-            result = f"{result}\n{extra}"
-        response = AnnotatedUtterance(
-            f"{self._id}: {result}",
-            participant=DialogueParticipant.AGENT,
-        )
-        self.user.store_conv({"query": utterance.text, "response": result})
-        self._dialogue_connector.register_agent_utterance(response)
+        return requests.post(RASA_SERVER_URL, json={"message": msg}).json()

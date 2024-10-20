@@ -1,4 +1,5 @@
 import json
+
 import tqdm
 
 ORIGINAL_DATA_PATH = "/home/emrds/Downloads/release/mbdump/release"
@@ -10,12 +11,8 @@ def simplify_music_data(data):
         "title": data.get("title"),
         "release_year": data.get("date"),
         "artist": {
-            "name": data.get("artist-credit", [{}])[0]
-            .get("artist", {})
-            .get("name"),
-            "id": data.get("artist-credit", [{}])[0]
-            .get("artist", {})
-            .get("id"),
+            "name": data.get("artist-credit", [{}])[0].get("artist", {}).get("name"),
+            "id": data.get("artist-credit", [{}])[0].get("artist", {}).get("id"),
             "aliases": [
                 {"name": alias.get("name"), "type": alias.get("type")}
                 for alias in data.get("artist-credit", [{}])[0]
