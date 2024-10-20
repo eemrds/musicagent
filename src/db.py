@@ -1,10 +1,13 @@
+import os
 from typing import Optional, Union
 from pymongo import MongoClient
 import sqlite3
 
-CLIENT = MongoClient(
-    "mongodb+srv://martinerik99:sN8b0mTiy7SlfVwu@dat640.ehx2a.mongodb.net/?retryWrites=true&w=majority&appName=DAT640"
-)
+from dotenv import load_dotenv
+
+load_dotenv()
+
+CLIENT = MongoClient(os.getenv("MONGO_URI"))
 DB = CLIENT["musicDB"]
 USERS_COLLECTION = DB["users"]
 SONG_COLLECTION = DB["songs"]
