@@ -1,0 +1,69 @@
+version: "3.1"
+
+rules:
+
+- rule: Say goodbye anytime the user says goodbye
+  steps:
+  - intent: goodbye
+  - action: utter_goodbye
+
+- rule: Say 'I am a bot' anytime the user challenges
+  steps:
+  - intent: bot_challenge
+  - action: utter_iamabot
+
+- rule: search song
+  steps:
+    - intent: search_song
+    - action: action_search_song
+    - slot_was_set:
+      - username: "user"
+
+- rule: search artist
+  steps:
+    - intent: search_artist
+    - action: action_search_artist
+    - slot_was_set:
+      - username: "user"
+
+- rule: show playlists
+  steps:
+    - intent: show_playlists
+    - action: action_get_playlists
+    - slot_was_set:
+      - username: "user"
+
+- rule: show playlist
+  steps:
+    - intent: show_playlist
+    - action: action_get_playlist
+    - slot_was_set:
+      - username: "user"
+
+- rule: create playlist
+  steps:
+    - intent: create_playlist
+    - action: action_create_playlist
+    - slot_was_set:
+      - username: "user"
+
+- rule: delete playlist
+  steps:
+    - intent: delete_playlist
+    - action: action_delete_playlist
+    - slot_was_set:
+      - username: "user"
+
+- rule: add to playlist
+  steps:
+    - intent: add_to_playlist
+    - action: action_add_to_playlist
+    - slot_was_set:
+      - username: "user"
+
+- rule: delete from playlist
+  steps:
+    - intent: delete_from_playlist
+    - action: action_delete_from_playlist
+    - slot_was_set:
+      - username: "user"

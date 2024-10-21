@@ -9,7 +9,26 @@
             "type": "debugpy",
             "request": "launch",
             "program": "bot.py",
-            "console": "integratedTerminal"
+            "console": "integratedTerminal",
+            // "justMyCode": false
+        },
+        {
+            "name": "Debug Rasa",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "rasa",
+            "args": ["run", "--enable-api"],
+            "console": "integratedTerminal",
+            // "justMyCode": false
+        },
+        {
+            "name": "Debug Rasa Actions",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "rasa",
+            "args": ["run", "actions"],
+            "console": "integratedTerminal",
+            // "justMyCode": false
         }
     ]
 }

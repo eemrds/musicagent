@@ -6,51 +6,42 @@ NEW_DATA_PATH = "data/preprocessed"
 
 
 def simplify_music_data(data):
-    simplified_data = {
-        "title": data.get("title"),
-        "release_year": data.get("date"),
-        "artist": {
-            "name": data.get("artist-credit", [{}])[0]
-            .get("artist", {})
-            .get("name"),
-            "id": data.get("artist-credit", [{}])[0]
-            .get("artist", {})
-            .get("id"),
-            "aliases": [
-                {"name": alias.get("name"), "type": alias.get("type")}
-                for alias in data.get("artist-credit", [{}])[0]
-                .get("artist", {})
-                .get("aliases", [])
-            ],
-            "genres": [
-                genre.get("name") for genre in data.get("genres", [])
-            ],  # Extracting genre names
-        },
-        "tracks": [],
-    }
 
-    for media in data.get("media", []):
+    item = json.loads(data)
+    songs = []
+
+    for media in item.get("media", []):
         for track in media.get("tracks", []):
-            simplified_track = {
-                "title": track.get("title"),
-                "length": track.get("length"),
-                "track_number": track.get("position"),
-                "artist": track.get("artist-credit", [{}])[0]
+            if not track.get("recording").get("title"):
+                continue
+            song = {
+                "title": track.get("recording", {}).get("title", "Unknown"),
+                "artist": track.get("recording", {})
+                .get("artist-credit", [{}])[0]
                 .get("artist", {})
-                .get("name"),
-                "genres": [
-                    genre.get("name")
-                    for genre in track.get("recording", {}).get("genres", [])
-                ],  # Extracting genre names
+                .get("name", None),
+                "release": track.get("recording", {}).get(
+                    "first-release-date", None
+                )[:4],
+                "album": item.get("release-group", {}).get("title", None),
+                "genre": track.get("recording", {}).get("genre", []),
+                "length": track.get("recording", {}).get("length", None),
             }
-            simplified_data["tracks"].append(simplified_track)
-
-    return simplified_data
+            print(song)
+            songs.append(song)
+    return songs
 
 
 with open(NEW_DATA_PATH, "a") as new:
     with open(ORIGINAL_DATA_PATH, "r") as original:
         for line in tqdm.tqdm(original):
-            data = simplify_music_data(json.loads(line))
-
-            new.write(f"{json.dumps(data)}\n")
+            songs = simplify_music_data(json.loads(line))
+            for song in songs:
+                data = {
+                    "title": song.get("title"),
+                    "artist": song.get("artist"),
+                    "album": song.get("album"),
+                    "year": song.get("release"),
+                    "genre": song.get("genre"),
+                }
+                new.write(json.dumps(data) + "\n")

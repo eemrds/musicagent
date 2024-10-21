@@ -1,6 +1,6 @@
-from dialoguekit.platforms.terminal_platform import TerminalPlatform
+from dialoguekit.platforms.flask_socket_platform import FlaskSocketPlatform
 
 from src.bot.music_agent import MusicAgent
 
-platform = TerminalPlatform(MusicAgent)
+platform = FlaskSocketPlatform(MusicAgent)
 platform.start()
