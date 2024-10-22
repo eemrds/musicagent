@@ -63,13 +63,13 @@ class Songs(list):
         return item_name in [s.title for s in self]
 
     def get(self, item_name) -> Song:
-        return filter(lambda s: s.title == item_name, self)[0]
+        return list(filter(lambda s: s.title == item_name, self))[0]
 
     def add(self, song: dict) -> "Songs":
         self.append(Song(**song) if isinstance(song, dict) else song)
         return self
 
-    def remove(self, song_name: str) -> "Songs":
+    def remove_song(self, song_name: str) -> "Songs":
         self = [s for s in self if s.title != song_name]
         return self
 
@@ -99,7 +99,10 @@ class Playlist:
         return self
 
     def dump(self) -> dict[str, list[dict]]:
-        return {"name": self.name, "songs": self.songs.dump()}
+        return {
+            "name": self.name,
+            "songs": [song.dump() for song in self.songs]  # Loop through each song and call dump()
+        }
 
 
 class Playlists(list):
@@ -263,9 +266,13 @@ class MusicDB:
         """Remove song from the playlist."""
         if playlist_name not in self.user.playlists:
             raise ValueError("Playlist not found.")
-        self.user.playlists = self.user.playlists.get(playlist_name).remove(
-            song_name
-        )
+        
+        playlist = self.user.playlists.get(playlist_name)
+
+        # Remove the song from the playlist
+        playlist.remove(song_name)
+
+        # No need to reassign self.user.playlists, it's still a Playlists object
         return self.user.playlists
 
 def search_specific_song(song_name: str, artist: Optional[str] = None) -> Optional[Song]:

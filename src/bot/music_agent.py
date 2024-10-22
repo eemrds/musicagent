@@ -21,8 +21,7 @@ from src.db import MusicDB, add_user, get_user, search_song, search_specific_son
 WELCOME_MESSAGE = "Hello, I'm MusicAgent. What can I help u with?"
 GOODBYE_MESSAGE = "It was nice talking to you. Bye"
 NOT_LOGGED_IN_MESSAGE = "You are not logged in. Please login or register by using /login or /register."
-HELP_MESSAGE = """
-Available commands:
+HELP_MESSAGE = """Available commands:
     - /help: Shows help message.
     - /exit: Exits the chat.
     - /add_song <song_name> <playlist_name>: Adds a song to a playlist.
@@ -92,7 +91,10 @@ class MusicAgent(Agent):
             selected_song = song_specific
 
             self.user.add_song_to_playlist(selected_song, playlist.name)
-            return f"Song {selected_song} added to {playlist_name}"
+            return f"""Song {selected_song} added to {playlist_name}
+
+How about trying asking what albums feature this song by typing:
+Which album features song {selected_song.title}?"""
 
         song = search_song(song_name)
         selected_song = None
@@ -109,7 +111,10 @@ class MusicAgent(Agent):
             return f"Song {song_name} not found", None
 
         self.user.add_songs_to_playlist(selected_song, playlist.name)
-        return f"Song {selected_song} added to {playlist_name}"
+        return f"""Song {selected_song} added to {playlist_name}
+
+How about trying asking what albums feature this song by typing:
+Which album features song {selected_song.title}?"""
     
     def add_song_artist_cmd(self, song_name: str, artist: str, playlist_name: str) -> str:
         """Adds a song to a playlist.
@@ -126,19 +131,16 @@ class MusicAgent(Agent):
         song = search_specific_song(song_name, artist)
         selected_song = None
 
-        if len(song) > 1:
-            song_str = "\n".join(
-                [f"{i+1}. {s.dump()}" for i, s in enumerate(song)]
-            )
-            msg = f"Multiple songs found. Please select one:\n{song_str}"
-            return f"{msg}"
-        elif len(song) == 1:
-            selected_song = song[0]
+        if song:
+            selected_song = song
+
+            self.user.add_song_to_playlist(selected_song, playlist.name)
+            return f"""Song {selected_song} added to {playlist_name}
+
+How about trying asking how many albums the artist has released:
+How many albums has artist {artist} released?"""
         else:
             return f"Song {song_name} not found", None
-
-        self.user.add_songs_to_playlist(selected_song, playlist.name)
-        return f"Song {selected_song} added to {playlist_name}"
 
     def remove_song_cmd(self, song_name: str, playlist_name: str) -> str:
         """Removes a song from a playlist.
@@ -150,9 +152,7 @@ class MusicAgent(Agent):
         Returns:
             Tuple containing the response.
         """
-        playlist = self.user.get_playlist(playlist_name)
-        song = self.user.get_song_from_playlist(playlist_name, song_name)
-        self.user.remove_song_from_playlist(song, playlist)
+        self.user.remove_song_from_playlist(song_name, playlist_name)
         return f"Song {song_name} removed from {playlist_name}"
 
     def list_playlists_cmd(self) -> dict:
@@ -185,7 +185,7 @@ class MusicAgent(Agent):
         Returns:
             Tuple containing the response.
         """
-        self.user.remove_playlist(playlist_name).dump()
+        self.user.remove_playlist(playlist_name)
         return f"Playlist {playlist_name} deleted"
 
     def list_songs_cmd(self, playlist_name: str) -> str:
