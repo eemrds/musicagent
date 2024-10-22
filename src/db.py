@@ -6,7 +6,9 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-CLIENT = MongoClient(os.getenv("MONGO_URI"))
+CLIENT = MongoClient(
+    "mongodb+srv://martinerik99:ug5uzVjD3UjYJ3VW@dat640.ehx2a.mongodb.net/?retryWrites=true&w=majority&appName=DAT640"
+)
 DB = CLIENT["musicDB"]
 USERS_COLLECTION = DB["users"]
 SONG_COLLECTION = DB["songs"]
@@ -221,7 +223,7 @@ class MusicDB:
         return self.user.playlists.get(playlist_name).songs.get(song_name)
 
     @update_db
-    def add_song_to_playlist(
+    def add_songs_to_playlist(
         self, song: Union[dict, Song], playlist_name: str
     ) -> list[Playlist]:
         """Add song to the playlist."""
@@ -237,6 +239,24 @@ class MusicDB:
         return self.user.playlists
 
     @update_db
+    def add_song_to_playlist(
+        self, song: Union[dict, Song], playlist_name: str
+    ) -> Playlist:
+        """Add song to the playlist."""
+        # Ensure the playlist exists
+        if playlist_name not in self.user.playlists:
+            raise ValueError("Playlist not found.")
+        
+        # Get the playlist
+        playlist = self.user.playlists.get(playlist_name)
+        
+        # Add the song to the playlist
+        playlist.add(Song(**song) if isinstance(song, dict) else song)
+        
+        # Return the updated playlist (or just None if not needed)
+        return playlist
+
+    @update_db
     def remove_song_from_playlist(
         self, song_name: str, playlist_name: str
     ) -> list[Playlist]:
@@ -248,6 +268,21 @@ class MusicDB:
         )
         return self.user.playlists
 
+def search_specific_song(song_name: str, artist: Optional[str] = None) -> Optional[Song]:
+    """Search for a specific song by name, optionally filtering by artist."""
+
+    query = {"title": song_name}
+    if artist is not None:
+        query["artist"] = artist
+
+    result = SONG_COLLECTION.find_one(query)
+    
+    if not result:
+        return None  # Return None if no song is found
+
+    result.pop("_id", None)  # Remove _id if present
+    
+    return Song(**result)  # Return a single Song object
 
 def search_song(song_name: str, artist: Optional[str] = None) -> Song:
     """Search for song by name."""
@@ -259,9 +294,7 @@ def search_song(song_name: str, artist: Optional[str] = None) -> Song:
     )
 
     results = list(
-        SONG_COLLECTION.find(query, {"score": {"$meta": "textScore"}}).sort(
-            [("score", {"$meta": "textScore"})]
-        )
+        SONG_COLLECTION.find(query)
     )
     if not results:
         return Songs([])

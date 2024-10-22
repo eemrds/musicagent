@@ -16,7 +16,7 @@ from dialoguekit.participant.agent import Agent
 from dialoguekit.participant.participant import DialogueParticipant
 import requests
 
-from src.db import MusicDB, add_user, get_user, search_song
+from src.db import MusicDB, add_user, get_user, search_song, search_specific_song
 
 WELCOME_MESSAGE = "Hello, I'm MusicAgent. What can I help u with?"
 GOODBYE_MESSAGE = "It was nice talking to you. Bye"
@@ -86,6 +86,14 @@ class MusicAgent(Agent):
             Tuple containing the response.
         """
         playlist = self.user.get_playlist(playlist_name)
+        song_specific = search_specific_song(song_name)
+
+        if song_specific:
+            selected_song = song_specific
+
+            self.user.add_song_to_playlist(selected_song, playlist.name)
+            return f"Song {selected_song} added to {playlist_name}"
+
         song = search_song(song_name)
         selected_song = None
 
@@ -94,14 +102,42 @@ class MusicAgent(Agent):
                 [f"{i+1}. {s.dump()}" for i, s in enumerate(song)]
             )
             msg = f"Multiple songs found. Please select one:\n{song_str}"
-            num = self.clarify_utterance(msg)
-            selected_song = song[int(num) - 1]
+            return f"{msg}"
         elif len(song) == 1:
             selected_song = song[0]
         else:
             return f"Song {song_name} not found", None
 
-        self.user.add_song_to_playlist(selected_song, playlist.name)
+        self.user.add_songs_to_playlist(selected_song, playlist.name)
+        return f"Song {selected_song} added to {playlist_name}"
+    
+    def add_song_artist_cmd(self, song_name: str, artist: str, playlist_name: str) -> str:
+        """Adds a song to a playlist.
+
+        Args:
+            song_name: Name of the song.
+            artist: Name of artist
+            playlist_name: Name of the playlist.
+
+        Returns:
+            Tuple containing the response.
+        """
+        playlist = self.user.get_playlist(playlist_name)
+        song = search_specific_song(song_name, artist)
+        selected_song = None
+
+        if len(song) > 1:
+            song_str = "\n".join(
+                [f"{i+1}. {s.dump()}" for i, s in enumerate(song)]
+            )
+            msg = f"Multiple songs found. Please select one:\n{song_str}"
+            return f"{msg}"
+        elif len(song) == 1:
+            selected_song = song[0]
+        else:
+            return f"Song {song_name} not found", None
+
+        self.user.add_songs_to_playlist(selected_song, playlist.name)
         return f"Song {selected_song} added to {playlist_name}"
 
     def remove_song_cmd(self, song_name: str, playlist_name: str) -> str:
@@ -183,7 +219,8 @@ class MusicAgent(Agent):
         Available commands:
             - /help: Shows help message.
             - /exit: Exits the chat.
-            - /add_song <song_name> <playlist_name>: Adds a song to a playlist.
+            - /add_song <song_name> to <playlist_name>: Adds a song to a playlist.
+            - /add_song <song_name> by <artist> to <playlist_name>: Adds a song by artist to a playlist.
             - /remove_song <song_name> <playlist_name>: Removes a song from a playlist.
             - /create_playlist <playlist_name>: Creates a new playlist.
             - /delete_playlist <playlist_name>: Deletes a playlist.
@@ -228,7 +265,6 @@ class MusicAgent(Agent):
 
         if utterance.text[0] == "/":
             cmd = utterance.text.split(" ")[0]
-            arg = " ".join(utterance.text.split(" ")[1:])
 
         if "/help" in cmd:
             result = self.help_cmd()
@@ -237,10 +273,17 @@ class MusicAgent(Agent):
             result = self.goodbye()
 
         elif "/add_song" in cmd:
-            if len(msg.split(" ")) != 3:
-                raise ValueError("Usage: /add_song <song_name> <playlist_name>")
-            _, song_name, playlist_name = msg.split(" ")
-            result = self.add_song_cmd(song_name, playlist_name)
+            if len(msg.split(" ")) < 4:
+                # /add_song diamonds by rihanna to playlist2
+                raise ValueError("Usage: /add_song <song_name> to <playlist_name>")
+            args = msg.split(" ", 1)[1]
+            songinfo, playlist_name = args.split(" to ")
+
+            if " by " in songinfo:
+                song_name, artist = songinfo.split(" by ")
+                result = self.add_song_artist_cmd(song_name, artist, playlist_name)
+            else:
+                result = self.add_song_cmd(songinfo, playlist_name)
 
         elif "/remove_song" in cmd:
             if len(msg.split(" ")) != 3:
@@ -251,24 +294,24 @@ class MusicAgent(Agent):
             result = self.remove_song_cmd(song_name, playlist_name)
 
         elif "/create_playlist" in cmd:
-            if len(msg.split(" ")) != 2:
+            if len(msg.split(" ")) < 2:
                 raise ValueError("Usage: /create_playlist <playlist_name>")
-            _, playlist_name = msg.split(" ")
+            playlist_name = msg.split(" ", 1)[1]
             result = self.create_playlist_cmd(playlist_name)
 
         elif "/delete_playlist" in cmd:
-            if len(msg.split(" ")) != 2:
+            if len(msg.split(" ")) < 2:
                 raise ValueError("Usage: /delete_playlist <playlist_name>")
-            _, playlist_name = msg.split(" ")
+            playlist_name = msg.split(" ", 1)[1]
             result = self.delete_playlist_cmd(playlist_name)
 
         elif "/list_playlists" in cmd:
             result = self.list_playlists_cmd()
 
         elif "/list_songs" in cmd:
-            if len(msg.split(" ")) != 2:
+            if len(msg.split(" ")) < 2:
                 raise ValueError("Usage: /list_songs <playlist_name>")
-            _, playlist_name = msg.split(" ")
+            playlist_name = msg.split(" ", 1)[1]
             result = self.list_songs_cmd(playlist_name)
 
         elif "/lookup" in cmd:
