@@ -8,14 +8,18 @@ intents:
   - mood_great
   - mood_unhappy
   - bot_challenge
-  - search_song
-  - search_artist
-  - show_playlists
-  - show_playlist
-  - create_playlist
-  - delete_playlist
-  - add_to_playlist
-  - delete_from_playlist
+  - help
+  - ask_album_release
+  - ask_artist_album_count
+  - ask_album_from_song
+  # - choose_number
+  # - search_song
+  # - show_playlists
+  # - show_playlist
+  # - create_playlist
+  # - delete_playlist
+  # - add_to_playlist
+  # - delete_from_playlist
 
 responses:
   utter_greet:
@@ -38,46 +42,51 @@ responses:
   - text: "I am a bot, powered by Rasa."
 
 actions:
-- action_search_song
-- action_search_artist
-- action_get_playlists
-- action_get_playlist
-- action_create_playlist
-- action_delete_playlist
-- action_add_to_playlist
-- action_delete_from_playlist
+- action_help
+- action_ask_album_release
+- action_ask_artist_album_count
+- action_ask_album_from_song
+# - action_search_song
+# - action_get_playlists
+# - action_get_playlist
+# - action_create_playlist
+# - action_delete_playlist
+# - action_add_to_playlist
+# - action_delete_from_playlist
 
 entities:
-  - username
-  - playlist
-  - song
-  - artist
+  - user_name
+  - playlist_name
+  - song_name
+  - artist_name
+  - album_name
 
 slots:
   username:
     type: text
-    influence_conversation: false
     mappings:
     - type: from_text
-      entity: username
+      entity: user_name
   playlist:
     type: text
-    # influence_conversation: false
     mappings:
     - type: from_entity
-      entity: playlist
+      entity: playlist_name
   song:
     type: text
-    # influence_conversation: false
     mappings:
     - type: from_entity
-      entity: song
+      entity: song_name
   artist:
     type: text
-    # influence_conversation: false
     mappings:
     - type: from_entity
-      entity: artist
+      entity: artist_name
+  album:
+    type: text
+    mappings:
+    - type: from_entity
+      entity: album_name
 
 session_config:
   session_expiration_time: 60

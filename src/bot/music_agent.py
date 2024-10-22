@@ -16,7 +16,7 @@ from dialoguekit.participant.agent import Agent
 from dialoguekit.participant.participant import DialogueParticipant
 import requests
 
-from src.db import MusicDB, User, get_user, search_artist, search_song
+from src.db import MusicDB, add_user, get_user, search_song
 
 WELCOME_MESSAGE = "Hello, I'm MusicAgent. What can I help u with?"
 GOODBYE_MESSAGE = "It was nice talking to you. Bye"
@@ -46,7 +46,8 @@ class MusicAgent(Agent):
             user: UserDB instance.
         """
         super().__init__(id)
-        self.user = MusicDB(get_user("erik"))
+        # self.user = MusicDB(get_user("erik"))
+        self.user = None
         self._RASA_URI = "http://localhost:5005"
 
     def welcome(self) -> None:
@@ -173,17 +174,6 @@ class MusicAgent(Agent):
         """
         return search_song(arg).dump()
 
-    def search_artist_cmd(self, arg: str) -> List[dict]:
-        """Looks up a query in the music database.
-
-        Args:
-            arg: Command argument.
-
-        Returns:
-            Tuple containing the response.
-        """
-        return search_artist(arg).dump()
-
     def receive_utterance(self, utterance: Utterance) -> None:
         """Gets called each time there is a new user utterance.
 
@@ -221,23 +211,36 @@ class MusicAgent(Agent):
             self._dialogue_connector.register_agent_utterance(response)
             return
 
-        bot = MusicAgent(self.user)
+        if "/login" in cmd:
+            if len(msg.split(" ")) != 2:
+                raise ValueError("Usage: /login <username>")
+            username = msg.split(" ")[1]
+            self.user = MusicDB(get_user(username))
+            result = f"Logged in as {username}"
+
+        if "/register" in cmd:
+            username = msg.split(" ")[1]
+            email = msg.split(" ")[2] if len(msg.split(" ")) == 3 else None
+            self.user = MusicDB(add_user(username, email))
+            result = f"Registered as {username}"
+
+        # bot = MusicAgent(self.user)
 
         if utterance.text[0] == "/":
             cmd = utterance.text.split(" ")[0]
             arg = " ".join(utterance.text.split(" ")[1:])
 
         if "/help" in cmd:
-            result = bot.help_cmd()
+            result = self.help_cmd()
 
         elif "/exit" in cmd:
-            result = bot.goodbye()
+            result = self.goodbye()
 
         elif "/add_song" in cmd:
             if len(msg.split(" ")) != 3:
                 raise ValueError("Usage: /add_song <song_name> <playlist_name>")
             _, song_name, playlist_name = msg.split(" ")
-            result = bot.add_song_cmd(song_name, playlist_name)
+            result = self.add_song_cmd(song_name, playlist_name)
 
         elif "/remove_song" in cmd:
             if len(msg.split(" ")) != 3:
@@ -245,36 +248,36 @@ class MusicAgent(Agent):
                     "Usage: /remove_song <song_name> <playlist_name>"
                 )
             _, song_name, playlist_name = msg.split(" ")
-            result = bot.remove_song_cmd(song_name, playlist_name)
+            result = self.remove_song_cmd(song_name, playlist_name)
 
         elif "/create_playlist" in cmd:
             if len(msg.split(" ")) != 2:
                 raise ValueError("Usage: /create_playlist <playlist_name>")
             _, playlist_name = msg.split(" ")
-            result = bot.create_playlist_cmd(playlist_name)
+            result = self.create_playlist_cmd(playlist_name)
 
         elif "/delete_playlist" in cmd:
             if len(msg.split(" ")) != 2:
                 raise ValueError("Usage: /delete_playlist <playlist_name>")
             _, playlist_name = msg.split(" ")
-            result = bot.delete_playlist_cmd(playlist_name)
+            result = self.delete_playlist_cmd(playlist_name)
 
         elif "/list_playlists" in cmd:
-            result = bot.list_playlists_cmd()
+            result = self.list_playlists_cmd()
 
         elif "/list_songs" in cmd:
             if len(msg.split(" ")) != 2:
                 raise ValueError("Usage: /list_songs <playlist_name>")
             _, playlist_name = msg.split(" ")
-            result = bot.list_songs_cmd(playlist_name)
+            result = self.list_songs_cmd(playlist_name)
 
         elif "/lookup" in cmd:
             if len(msg.split(" ")) < 2:
                 raise ValueError("Usage: /lookup <query>")
             _, arg = " ".join(msg.split(" "))
-            result = bot.lookup_cmd(arg)
+            result = self.search_song_cmd(arg)
 
-        else:
+        if "/" not in msg:
             requests.post(
                 f"{self._RASA_URI}/conversations/{self.user.user.username}/tracker/events",
                 json={
@@ -291,12 +294,14 @@ class MusicAgent(Agent):
                 },
             )
             result = result.json()
-            if not isinstance(result, list):
+            if not isinstance(result, list) or not result:
                 result = "Sorry, I didn't get that."
-            prettyfy = ""
-            if len(result) > 1:
-                prettyfy = "\n\t".join([r["text"] for r in result[1:]])
-            result = f"{result[0]['text']}\n\t{prettyfy}"
+            else:
+                prettyfy = ""
+                if len(result) > 1:
+                    prettyfy = "\n\t".join([r["text"] for r in result[1:]])
+                result = f"{result[0]['text']}\n\t{prettyfy}"
+            self.user = MusicDB(get_user(self.user.user.username))
 
         response = AnnotatedUtterance(
             str(result),

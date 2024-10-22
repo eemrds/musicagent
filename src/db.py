@@ -251,20 +251,18 @@ class MusicDB:
 
 def search_song(song_name: str, artist: Optional[str] = None) -> Song:
     """Search for song by name."""
-    query = {
-        "title": {
-            "$regex": song_name,
-            "$options": "i",
-        },
-    }
 
-    if artist:
-        query["artist"] = {
-            "$regex": artist,
-            "$options": "i",
-        }
+    query = (
+        {"$text": {"$search": f"{song_name} {artist}"}}
+        if artist
+        else {"$text": {"$search": song_name}}
+    )
 
-    results = list(SONG_COLLECTION.find(query))
+    results = list(
+        SONG_COLLECTION.find(query, {"score": {"$meta": "textScore"}}).sort(
+            [("score", {"$meta": "textScore"})]
+        )
+    )
     if not results:
         return Songs([])
     for result in results:
@@ -272,21 +270,33 @@ def search_song(song_name: str, artist: Optional[str] = None) -> Song:
     return Songs(results)
 
 
-def search_artist(artist: str) -> Songs:
-    """Search for songs by artist."""
-    query = {
-        "artist": {
-            "$regex": artist,
-            "$options": "i",
-        },
-    }
+def search_album_release(album_name: str) -> str:
+    """Search for album release year by name."""
+    result = SONG_COLLECTION.find_one(
+        {"album": {"$regex": album_name, "$options": "i"}}
+    )
+    if not result:
+        return "Unknown"
+    return result["year"]
 
-    results = list(SONG_COLLECTION.find(query))
+
+def search_artist_albums(artist_name: str) -> list[str]:
+    """Search for artist albums by name."""
+    artist = SONG_COLLECTION.find_one(
+        {"artist": {"$regex": artist_name, "$options": "i"}}
+    )
+    results = list(SONG_COLLECTION.find({"artist": artist}))
     if not results:
-        return Songs([])
+        return []
+    return [result["album"] for result in results]
+
+
+def QueryDB(query: dict) -> list[dict]:
+    """Query the database."""
+    results = list(SONG_COLLECTION.find(query))
     for result in results:
         result.pop("_id")
-    return Songs(results)
+    return results
 
 
 def get_user(username) -> User:

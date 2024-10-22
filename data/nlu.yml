@@ -1,15 +1,22 @@
 version: "3.1"
 
 nlu:
-- regex: playlist
+# - regex: playlist
+#   examples: |
+#     - [A-Za-z0-9 ]+
+# - regex: song
+#   examples: |
+#     - .*
+# - regex: artist
+#   examples: |
+#     - .*
+- regex: user_name
   examples: |
-    - [A-Za-z0-9 ]+
-- regex: song
-  examples: |
-    - .*
-- regex: artist
-  examples: |
-    - .*
+    - \((?P<username>[^\)]+)\)
+
+# - regex: playlist_name
+#   examples: |
+#     - [\w\s&\-]+
 
 - intent: greet
   examples: |
@@ -65,109 +72,278 @@ nlu:
     - great
     - amazing
     - feeling like a king
-    - wonderfulnlu:
-- intent: search_song
-  examples: |
-    - Find me the song [Bohemian Rhapsody](song)
-    - Can you look for [Hotel California](song)?
-    - Search for [Imagine](song)
+    - wonderful
 
-- intent: create_playlist
+- intent: ask_album_release
   examples: |
-    - Create a new playlist called [Rock Hits](playlist)
-    - Start a playlist named [Chill Vibes](playlist)
+    - What year was the album [Abbey Road](album_name) released?
+    - Can you tell me the release date of [Thriller](album_name)?
+    - When did [Rumours](album_name) come out?
+    - Do you know when [The Wall](album_name) was first released?
+    - What’s the release year for [Back in Black](album_name)?
+    - What year did the album [Nevermind](album_name) drop?
+    - When was [Dark Side of the Moon](album_name) originally released?
+    - Could you tell me the release date of [Born in the U.S.A.](album_name)?
+    - What was the release date for [Sgt. Pepper's Lonely Hearts Club Band](album_name)?
+    - What year did [Led Zeppelin IV](album_name) hit the shelves?
+    - Can you find the release date for [The Joshua Tree](album_name)?
+    - When was [The Chronic](album_name) released?
+    - What year did [Purple Rain](album_name) come out?
+    - Do you know when [Hounds of Love](album_name) was released?
+    - When did [OK Computer](album_name) first get released?
 
-- intent: add_to_playlist
+- intent: ask_artist_album_count
   examples: |
-    - Add [Stairway to Heaven](song) to the [Rock Classics](playlist) playlist
-    - Put [Yesterday](song) in the [Oldies](playlist) playlist
-    - I am feeling very good
-    - I am great
-    - I am amazing
-    - I am going to save the world
-    - super stoked
-    - extremely good
-    - so so perfect
-    - so good
-    - so perfect
+    - How many albums has artist [Taylor Swift](artist_name) released?
+    - What's the total number of albums by [The Beatles](artist_name)?
+    - Do you know how many albums [Kanye West](artist_name) has put out?
+    - How many records has [Adele](artist_name) released so far?
+    - Can you tell me how many albums [Elton John](artist_name) has released?
+    - What’s the total album count for [Madonna](artist_name)?
+    - How many albums does [David Bowie](artist_name) have in his discography?
+    - How many studio albums has [Beyoncé](artist_name) dropped?
+    - Do you know the number of albums [Prince](artist_name) has released?
+    - How many albums has [Rihanna](artist_name) put out?
+    - Can you tell me how many albums [Bob Dylan](artist_name) has recorded?
+    - How many records has [Bruce Springsteen](artist_name) released?
+    - What is the total number of albums by [Drake](artist_name)?
+    - How many studio albums has [Frank Sinatra](artist_name) released?
+    - Do you know how many albums [Stevie Wonder](artist_name) has made?
+    - What is the album count for [U2](artist_name)?
 
-- intent: mood_unhappy
+- intent: ask_album_from_song
   examples: |
-    - my day was horrible
-    - I am sad
-    - I don't feel very well
-    - I am disappointed
-    - super sad
-    - I'm so sad
-    - sad
-    - very sad
-    - unhappy
-    - not good
-    - not very good
-    - extremly sad
-    - so saad
-    - so sad
+    - Which album features the song [Bohemian Rhapsody](song_name)?
+    - On which album can I find [Billie Jean](song_name)?
+    - What album does [Stairway to Heaven](song_name) appear on?
+    - Do you know which album [Smells Like Teen Spirit](song_name) is from?
+    - What album is [Rolling in the Deep](song_name) featured on?
+    - Can you tell me the album that includes [Hotel California](song_name)?
+    - Which album has the track [Imagine](song_name)?
+    - What album does [Purple Rain](song_name) belong to?
+    - Where can I find the song [Hey Jude](song_name)?
+    - What record includes [Let It Be](song_name)?
+    - Which album features the song [Like a Rolling Stone](song_name)?
+    - What album is [Wonderwall](song_name) on?
+    - Do you know which album [Sweet Child O’ Mine](song_name) is from?
+    - Can you tell me which album [Losing My Religion](song_name) appears on?
+    - What album does the song [I Will Always Love You](song_name) come from?
+    - Which album includes [What's Going On](song_name)?
 
-- intent: bot_challenge
-  examples: |
-    - are you a bot?
-    - are you a human?
-    - am I talking to a bot?
-    - am I talking to a human?
 
-- intent: search_song
+- intent: help
   examples: |
-    - Search for the song [Nothing Else Matters](song)
-    - Can you get me [Back in Black](song)?
-    - Find me [Enter Sandman](song) by [Metallica](artist)
-    - Search for [Bad Company](song) by [Five Finger Death Punch](artist)
-    - Look for [Livin' on a Prayer](song) [Bon Jovi](artist)
+    - what can you do?
+    - what are your abilities?
+    - help me
+    - help
 
-- intent: search_artist
-  examples: |
-    - Find me songs by [Queen](artist)
-    - Can you get me songs by [The Beatles](artist)?
-    - Search for songs by [Led Zeppelin](artist)
-    - Look for songs by [The Rolling Stones](artist)
-    - Find me songs by [The Eagles](artist)
+# - intent: search_song
+#   examples: |
+#     - Find me the song [Bohemian Rhapsody](song_name)
+#     - Can you look for [Hotel California](song_name)?
+#     - Search for [Imagine](song_name)
 
-- intent: show_playlists
-  examples: |
-    - Show me my playlists
-    - Display my playlists
-    - List my playlists
-    - Show playlists
-    - What playlists do I have?
-    - What are my playlists?
+# - intent: create_playlist
+#   examples: |
+#     - Create a new playlist called [Rock Hits](playlist_name)
+#     - Start a playlist named [Chill Vibes](playlist_name)
 
-- intent: show_playlist
-  examples: |
-    - Show me the [Rock Hits](playlist) playlist
-    - Display the [Chill Vibes](playlist) playlist
-    - Get me the [Pop Hits](playlist) playlist
-    - Show me [test](playlist) playlist
+# - intent: add_to_playlist
+#   examples: |
+#     - Add [Stairway to Heaven](song_name) to the [Rock Classics](playlist_name) playlist
+#     - Put [Yesterday](song_name) in the [Oldies](playlist_name) playlist
+#     - I am feeling very good
+#     - I am great
+#     - I am amazing
+#     - I am going to save the world
+#     - super stoked
+#     - extremely good
+#     - so so perfect
+#     - so good
+#     - so perfect
 
-- intent: create_playlist
-  examples: |
-    - Create a playlist called [Rock Classics](playlist)
-    - Make a new playlist named [Chill Vibes](playlist)
-    - Create [Pop Hits](playlist)
+# - intent: choose_number
+#   examples: |
+#     - 1
+#     - 2
+#     - 3
+#     - 20
+#     - I choose 1
+#     - Option 2
 
-- intent: delete_playlist
-  examples: |
-    - Delete the playlist [Rock Hits](playlist)
-    - Remove the playlist [Chill Vibes](playlist)
-    - Delete [Pop Hits](playlist)
+# - intent: create_playlist
+#   examples: |
+#     - Create playlist [Rock](playlist_name)
+#     - Make playlist called [chill vibes](playlist_name)
+#     - Create [POP HITS](playlist_name)
+#     - Create playlist named [stars](playlist_name)
+#     - Make playlist [Best](playlist_name)
+#     - Create [favorites](playlist_name)
+#     - Create a playlist [Chill](playlist_name)
+#     - Start playlist named [Workout Mix](playlist_name)
+#     - Create playlist called [Party songs](playlist_name)
+#     - Make new playlist [Morning Boost](playlist_name)
+#     - Create playlist [Vibe](playlist_name)
+#     - Make playlist named [Relax & Unwind](playlist_name)
+#     - Create a playlist titled [Monday motivation](playlist_name)
+#     - Make new playlist titled [throwback jams](playlist_name)
+#     - Create playlist called [SUMMER vibes](playlist_name)
+#     - Make a new playlist [study time](playlist_name)
+#     - Create [Best of 90s](playlist_name) playlist
+#     - Make a playlist [rainy day tunes](playlist_name)
+#     - Create a playlist named [ChillMix](playlist_name)
+#     - Start playlist [Top 100](playlist_name)
+#     - Create playlist called [roadtrip](playlist_name)
+#     - Make a playlist [Focus Music](playlist_name)
+#     - Create playlist titled [party mix](playlist_name)
+#     - Make playlist called [MyFavorites](playlist_name)
+#     - Create playlist [weekend chill](playlist_name)
+#     - Make playlist [Throwback](playlist_name)
+#     - Create playlist [BEST of all](playlist_name)
+#     - Start a playlist [Motivation Hits](playlist_name)
+#     - Create new playlist called [DanceTime](playlist_name)
+#     - Make playlist titled [morning vibes](playlist_name)
+#     - Make playlist [Epic Journey](playlist_name)
+#     - Create playlist [Nostalgia](playlist_name)
+#     - Create a new playlist [Workout](playlist_name)
 
-- intent: add_to_playlist
-  examples: |
-    - Add [Bohemian Rhapsody](song) to the [Rock Hits](playlist) playlist
-    - Put [Hotel California](song) to the [Oldies](playlist) playlist
-    - Add [Livin' on a Prayer](song) in [Rock Classics](playlist)
+# - intent: show_playlists
+#   examples: |
+#     - Show me my playlists
+#     - Display my playlists
+#     - List my playlists
+#     - Show playlists
+#     - What playlists do I have?
+#     - What are my playlists?
 
-- intent: delete_from_playlist
-  examples: |
-    - Remove [Bohemian Rhapsody](song) from the [Rock Hits](playlist) playlist
-    - Delete [Hotel California](song) from the [Oldies](playlist) playlist
-    - Remove [Livin' on a Prayer](song) from [Rock Classics](playlist)
+# - intent: show_playlist
+#   examples: |
+#     - Show me the [Rock Hits](playlist_name) playlist
+#     - Display the [Chill Vibes](playlist_name) playlist
+#     - Get me the [Pop Hits](playlist_name) playlist
+#     - Show me [test](playlist_name) playlist
+#     - Show playlist [roadtrip](playlist_name)
+#     - Display [Oldies](playlist_name) playlist
+#     - Show my [favorites](playlist_name)
+#     - Show me [ChillMix](playlist_name)
+#     - Get me the [workout](playlist_name) playlist
+#     - Display [summer vibes](playlist_name) playlist
+#     - Show [TOP 100](playlist_name)
+#     - Bring up [Relax & Unwind](playlist_name) playlist
+#     - Show the [throwback jams](playlist_name) playlist
+#     - Get [Morning Boost](playlist_name) playlist
+#     - Show [Best Of 90s](playlist_name)
+#     - Show me [party mix](playlist_name)
+#     - Display playlist [FocusMusic](playlist_name)
+#     - Bring up [Study Time](playlist_name)
+#     - Get the [Weekend Chill](playlist_name) playlist
+#     - Show [best hits](playlist_name)
+#     - Display my [Epic Journey](playlist_name)
+#     - Show [vibe](playlist_name) playlist
+#     - Get me [late night](playlist_name) playlist
+#     - Show [Road Trip](playlist_name) playlist
+#     - Display [Top tracks](playlist_name)
+#     - Show [My Mix](playlist_name)
+#     - Show the [Nostalgia](playlist_name) playlist
+#     - Bring up [Dance Hits](playlist_name)
+#     - Show me [RainyDay](playlist_name)
+#     - Display the [focus tunes](playlist_name) playlist
+
+
+# - intent: delete_playlist
+#   examples: |
+#     - Delete the playlist [Rock Hits](playlist_name)
+#     - Remove the playlist [Chill Vibes](playlist_name)
+#     - Delete [Pop Hits](playlist_name)
+#     - Remove playlist [oldies](playlist_name)
+#     - Delete [RoadTrip](playlist_name)
+#     - Get rid of [workout mix](playlist_name) playlist
+#     - Erase [favorites](playlist_name)
+#     - Delete the playlist [ChillMix](playlist_name)
+#     - Remove [Summer Vibes](playlist_name) playlist
+#     - Delete [BEST of all](playlist_name)
+#     - Remove [top 100](playlist_name)
+#     - Delete playlist called [party songs](playlist_name)
+#     - Get rid of [Morning Boost](playlist_name) playlist
+#     - Erase [rainy day](playlist_name)
+#     - Delete [FocusMusic](playlist_name) playlist
+#     - Remove the [throwback jams](playlist_name) playlist
+#     - Remove [Epic Journey](playlist_name)
+#     - Delete [study tunes](playlist_name)
+#     - Remove the [relax & unwind](playlist_name)
+#     - Erase [Dance Mix](playlist_name) playlist
+#     - Delete my [vibe](playlist_name)
+#     - Remove [Late Night](playlist_name) playlist
+#     - Get rid of [Best Of 90s](playlist_name)
+#     - Remove [My Mix](playlist_name)
+#     - Erase the playlist [Weekend Chill](playlist_name)
+#     - Delete the [focus tunes](playlist_name)
+#     - Remove the [Nostalgia](playlist_name) playlist
+#     - Delete [party mix](playlist_name) 
+#     - Get rid of [Motivation Mix](playlist_name)
+#     - Delete [Chill](playlist_name) playlist
+#     - Erase playlist [Top Tracks](playlist_name)
+
+
+# - intent: add_to_playlist
+#   examples: |
+#     - Add [Bohemian Rhapsody](song_name) to the [Rock Hits](playlist_name) playlist
+#     - Put [Hotel California](song_name) to the [Oldies](playlist_name) playlist
+#     - Add [Livin' on a Prayer](song_name) in [Rock Classics](playlist_name)
+#     - Add [Mind](song_name) to [Classics](playlist_name)
+#     - Put [California](song_name) in [Summer Vibes](playlist_name)
+#     - Add [Imagine](song_name) to the [Best of 70s](playlist_name)
+#     - Add [Shape](song_name) to [Pop Hits](playlist_name)
+#     - Put [Believer](song_name) in [Motivation](playlist_name)
+#     - Add [Nothing Else Matters](song_name) to [Metal Mix](playlist_name)
+#     - Put [Smells](song_name) in [Grunge](playlist_name) playlist
+#     - Add [Thunderstruck](song_name) to [Workout](playlist_name)
+#     - Add [Dreams](song_name) to [Chill Vibes](playlist_name)
+#     - Put [Yesterday](song_name) in [Retro](playlist_name)
+#     - Add [Life](song_name) to [Top Hits](playlist_name)
+#     - Put [Jude](song_name) in [Favorites](playlist_name)
+#     - Add [Space Oddity](song_name) to [Space Tunes](playlist_name)
+#     - Add [Sandman](song_name) to [Sleep Playlist](playlist_name)
+#     - Put [Time](song_name) in [Study Time](playlist_name)
+#     - Add [Rain](song_name) to [Rainy Day](playlist_name)
+#     - Put [Black](song_name) in [Rock Classics](playlist_name)
+#     - Add [Sun](song_name) to [Summer Mix](playlist_name)
+#     - Add [Freedom](song_name) to [Party Playlist](playlist_name)
+#     - Put [Waves](song_name) in [Chill Mix](playlist_name)
+#     - Add [Fire](song_name) to [Epic Hits](playlist_name)
+#     - Put [Magic](song_name) in [Morning Boost](playlist_name)
+#     - Add [Daydream](song_name) to [Nostalgia](playlist_name)
+#     - Put [Electric](song_name) in [Dance Party](playlist_name)
+
+
+# - intent: delete_from_playlist
+#   examples: |
+#     - Remove [Bohemian Rhapsody](song_name) from the [Rock Hits](playlist_name) playlist
+#     - Delete [Hotel California](song_name) from the [Oldies](playlist_name) playlist
+#     - Remove [Livin' on a Prayer](song_name) from [Rock Classics](playlist_name)
+#     - Delete [Mind](song_name) from [Classics](playlist_name)
+#     - Remove [California](song_name) from [Summer Vibes](playlist_name)
+#     - Get rid of [Imagine](song_name) from [Best of 70s](playlist_name)
+#     - Delete [Believer](song_name) from [Motivation](playlist_name)
+#     - Remove [Nothing Else Matters](song_name) from [Metal Mix](playlist_name)
+#     - Delete [Smells](song_name) from [Grunge](playlist_name) playlist
+#     - Take out [Thunderstruck](song_name) from [Workout](playlist_name)
+#     - Remove [Dreams](song_name) from [Chill Vibes](playlist_name)
+#     - Delete [Yesterday](song_name) from [Retro](playlist_name)
+#     - Remove [Life](song_name) from [Top Hits](playlist_name)
+#     - Delete [Jude](song_name) from [Favorites](playlist_name)
+#     - Get rid of [Space Oddity](song_name) from [Space Tunes](playlist_name)
+#     - Remove [Sandman](song_name) from [Sleep Playlist](playlist_name)
+#     - Take out [Time](song_name) from [Study Time](playlist_name)
+#     - Remove [Rain](song_name) from [Rainy Day](playlist_name)
+#     - Delete [Black](song_name) from [Rock Classics](playlist_name)
+#     - Remove [Sun](song_name) from [Summer Mix](playlist_name)
+#     - Get rid of [Freedom](song_name) from [Party Playlist](playlist_name)
+#     - Delete [Waves](song_name) from [Chill Mix](playlist_name)
+#     - Remove [Fire](song_name) from [Epic Hits](playlist_name)
+#     - Take out [Magic](song_name) from [Morning Boost](playlist_name)
+#     - Delete [Daydream](song_name) from [Nostalgia](playlist_name)
+#     - Remove [Electric](song_name) from [Dance Party](playlist_name)
+
 

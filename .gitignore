@@ -4,3 +4,4 @@ data/release
 dialogue_export
 test.py
 .rasa
+cache

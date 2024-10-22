@@ -29,6 +29,14 @@
             "args": ["run", "actions"],
             "console": "integratedTerminal",
             // "justMyCode": false
+        },
+        {
+            "name": "Python: Current File",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            // "justMyCode": false
         }
     ]
 }

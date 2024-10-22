@@ -28,3 +28,78 @@ stories:
   - action: utter_did_that_help
   - intent: deny
   - action: utter_goodbye
+
+- story: help
+  steps:
+    - intent: help
+    - action: action_help
+
+- story: Album release date
+  steps:
+  - intent: ask_album_release
+  - action: action_ask_album_release
+
+- story: Artist album count
+  steps:
+  - intent: ask_artist_album_count
+  - action: action_ask_artist_album_count
+
+- story: Song to album mapping
+  steps:
+  - intent: ask_album_from_song
+  - action: action_ask_album_from_song
+
+# - story: search song
+#   steps:
+#     - intent: search_song
+#     - action: action_search_song
+#     - slot_was_set:
+#       - username: "user"
+#       - song: "song"
+
+# - story: show playlists
+#   steps:
+#     - intent: show_playlists
+#     - action: action_get_playlists
+#     - slot_was_set:
+#       - username: "user"
+
+# - story: show playlist
+#   steps:
+#     - intent: show_playlist
+#     - action: action_get_playlist
+#     - slot_was_set:
+#       - username: "user"
+
+# - story: create playlist
+#   steps:
+#     - intent: create_playlist
+#     - action: action_create_playlist
+#     - slot_was_set:
+#       - username: "user"
+#       - playlist: "playlist"
+
+# - story: delete playlist
+#   steps:
+#     - intent: delete_playlist
+#     - action: action_delete_playlist
+#     - slot_was_set:
+#       - username: "user"
+
+# - story: add to playlist
+#   steps:
+#     - intent: add_to_playlist
+#     - action: action_search_song
+#     - intent: choose_number
+#       entities:
+#         - number: "song_choice"
+#     - action: action_add_to_playlist
+#     - slot_was_set:
+#         - username: "user"
+
+# - story: delete from playlist
+#   steps:
+#     - intent: delete_from_playlist
+#     - action: action_delete_from_playlist
+#     - slot_was_set:
+#       - username: "user"

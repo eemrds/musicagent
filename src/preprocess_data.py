@@ -22,12 +22,18 @@ def simplify_music_data(data):
                 .get("name", None),
                 "release": track.get("recording", {}).get(
                     "first-release-date", None
-                )[:4],
+                ),
                 "album": item.get("release-group", {}).get("title", None),
-                "genre": track.get("recording", {}).get("genre", []),
+                "genre": [
+                    t["name"]
+                    for t in item.get("artist-credit", [{}])[0]
+                    .get("artist", {})
+                    .get("genres", [])
+                    if t.get("name")
+                ],
                 "length": track.get("recording", {}).get("length", None),
             }
-            print(song)
+            # print(song)
             songs.append(song)
     return songs
 
@@ -35,7 +41,7 @@ def simplify_music_data(data):
 with open(NEW_DATA_PATH, "a") as new:
     with open(ORIGINAL_DATA_PATH, "r") as original:
         for line in tqdm.tqdm(original):
-            songs = simplify_music_data(json.loads(line))
+            songs = simplify_music_data(line)
             for song in songs:
                 data = {
                     "title": song.get("title"),
