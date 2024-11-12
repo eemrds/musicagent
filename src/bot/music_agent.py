@@ -16,6 +16,7 @@ from dialoguekit.participant.agent import Agent
 from dialoguekit.participant.participant import DialogueParticipant
 import requests
 
+from src.bot.llm import get_entities
 from src.db import MusicDB, add_user, get_user, search_song
 
 WELCOME_MESSAGE = "Hello, I'm MusicAgent. What can I help u with?"
@@ -36,7 +37,7 @@ Available commands:
 
 
 class MusicAgent(Agent):
-    def __init__(self, id: str):
+    def __init__(self, id: str, use_rasa: bool = False) -> None:
         """Music agent.
 
         Agent that lets the user interract with a muscic database through
@@ -46,9 +47,19 @@ class MusicAgent(Agent):
             user: UserDB instance.
         """
         super().__init__(id)
-        # self.user = MusicDB(get_user("erik"))
-        self.user = None
+        self.user = MusicDB(get_user("erik"))
         self._RASA_URI = "http://localhost:5005"
+        self.intents = {
+            "list_playlists": self.list_playlists_cmd,
+            "create_playlist": self.create_playlist_cmd,
+            "delete_playlist": self.delete_playlist_cmd,
+            "list_playlist": self.list_songs_cmd,
+            "add_song": self.add_song_cmd,
+            "delete_song": self.remove_song_cmd,
+            "list_songs": self.list_songs_cmd,
+            "search_song": self.search_song_cmd,
+            "recommend_songs": self.recommend_cmd,
+        }
 
     def welcome(self) -> None:
         """Sends the agent's welcome message."""
@@ -75,16 +86,14 @@ class MusicAgent(Agent):
         """Exits the chat."""
         return GOODBYE_MESSAGE
 
-    def add_song_cmd(self, song_name: str, playlist_name: str) -> str:
+    def add_song_cmd(self, **kwargs) -> str:
         """Adds a song to a playlist.
-
-        Args:
-            song_name: Name of the song.
-            playlist_name: Name of the playlist.
 
         Returns:
             Tuple containing the response.
         """
+        song_name = kwargs.get("song")
+        playlist_name = kwargs.get("playlist")
         playlist = self.user.get_playlist(playlist_name)
         song = search_song(song_name)
         selected_song = None
@@ -104,22 +113,20 @@ class MusicAgent(Agent):
         self.user.add_song_to_playlist(selected_song, playlist.name)
         return f"Song {selected_song} added to {playlist_name}"
 
-    def remove_song_cmd(self, song_name: str, playlist_name: str) -> str:
+    def remove_song_cmd(self, **kwargs) -> str:
         """Removes a song from a playlist.
-
-        Args:
-            song_name: Name of the song.
-            playlist_name: Name of the playlist.
 
         Returns:
             Tuple containing the response.
         """
+        song_name = kwargs.get("song")
+        playlist_name = kwargs.get("playlist")
         playlist = self.user.get_playlist(playlist_name)
         song = self.user.get_song_from_playlist(playlist_name, song_name)
         self.user.remove_song_from_playlist(song, playlist)
         return f"Song {song_name} removed from {playlist_name}"
 
-    def list_playlists_cmd(self) -> dict:
+    def list_playlists_cmd(self, **kwargs) -> dict:
         """Lists all available playlists.
 
         Returns:
@@ -128,42 +135,35 @@ class MusicAgent(Agent):
         playlists = self.user.get_playlists()
         return playlists.dump()
 
-    def create_playlist_cmd(self, playlist_name: str) -> str:
+    def create_playlist_cmd(self, **kwargs) -> str:
         """Creates a new playlist.
-
-        Args:
-            playlist_name: Name of the playlist.
 
         Returns:
             Tuple containing the response.
         """
+        playlist_name = kwargs.get("playlist")
         self.user.add_playlist(playlist_name)
         return f"Playlist {playlist_name} created"
 
-    def delete_playlist_cmd(self, playlist_name: str) -> str:
+    def delete_playlist_cmd(self, **kwargs) -> str:
         """Deletes a playlist.
-
-        Args:
-            playlist_name: Name of the playlist.
 
         Returns:
             Tuple containing the response.
         """
+        playlist_name = kwargs.get("playlist")
         self.user.remove_playlist(playlist_name).dump()
         return f"Playlist {playlist_name} deleted"
 
-    def list_songs_cmd(self, playlist_name: str) -> str:
+    def list_songs_cmd(self, **kwargs) -> str:
         """Lists all songs in a playlist.
-
-        Args:
-            playlist_name: Name of the playlist.
 
         Returns:
             Tuple containing the response.
         """
-        return self.user.playlists.get(playlist_name).songs.dump()
+        return self.user.user.playlists.get(kwargs.get("playlist")).songs.dump()
 
-    def search_song_cmd(self, arg: str) -> List[dict]:
+    def search_song_cmd(self, **kwargs) -> List[dict]:
         """Looks up a query in the music database.
 
         Args:
@@ -172,7 +172,97 @@ class MusicAgent(Agent):
         Returns:
             Dict of songs.
         """
-        return search_song(arg).dump()
+        if kwargs.get("artist", None):
+            return search_song(kwargs.get("song"), kwargs["artist"]).dump()
+        return search_song(kwargs.get("song")).dump()
+
+    def set_user(self, msg: str, cmd: str) -> str:
+        """Sets the user.
+
+        Args:
+            cmd: Command.
+            msg: User message.
+
+        Returns:
+            The response.
+        """
+
+        pass
+
+    def recommend_cmd(self, playlist_name: str) -> str:
+        """Recommends songs based on songs in a playlist.
+
+        Args:
+            playlist_name: Name of the playlist.
+
+        Returns:
+            Tuple containing the response.
+        """
+        pass
+
+    def commands(self, msg: str) -> str:
+        """Executes commands from the user.
+
+        Args:
+            msg: User message.
+
+        Returns:
+            Tuple containing the response.
+        """
+        cmd = msg.split(" ")[0]
+        if "/help" in cmd:
+            return self.help_cmd()
+        elif "/exit" in cmd:
+            return self.goodbye()
+
+        elif "/login" in cmd:
+            if len(msg.split(" ")) != 2:
+                raise ValueError("Usage: /login <username>")
+            username = msg.split(" ")[1]
+            self.user = MusicDB(get_user(username))
+            result = f"Logged in as {username}"
+
+        elif "/register" in cmd:
+            username = msg.split(" ")[1]
+            email = msg.split(" ")[2] if len(msg.split(" ")) == 3 else None
+            self.user = MusicDB(add_user(username, email))
+            result = f"Registered as {username}"
+        elif "/add_song" in cmd:
+            if len(msg.split(" ")) != 3:
+                raise ValueError("Usage: /add_song <song_name> <playlist_name>")
+            _, song_name, playlist_name = msg.split(" ")
+            return self.add_song_cmd(song_name, playlist_name)
+        elif "/remove_song" in cmd:
+            if len(msg.split(" ")) != 3:
+                raise ValueError(
+                    "Usage: /remove_song <song_name> <playlist_name>"
+                )
+            _, song_name, playlist_name = msg.split(" ")
+            return self.remove_song_cmd(song_name, playlist_name)
+        elif "/create_playlist" in cmd:
+            if len(msg.split(" ")) != 2:
+                raise ValueError("Usage: /create_playlist <playlist_name>")
+            _, playlist_name = msg.split(" ")
+            return self.create_playlist_cmd(playlist_name)
+        elif "/delete_playlist" in cmd:
+            if len(msg.split(" ")) != 2:
+                raise ValueError("Usage: /delete_playlist <playlist_name>")
+            _, playlist_name = msg.split(" ")
+            return self.delete_playlist_cmd(playlist_name)
+        elif "/list_playlists" in cmd:
+            return self.list_playlists_cmd()
+        elif "/list_songs" in cmd:
+            if len(msg.split(" ")) != 2:
+                raise ValueError("Usage: /list_songs <playlist_name>")
+            _, playlist_name = msg.split(" ")
+            return self.list_songs_cmd(playlist_name)
+        elif "/lookup" in cmd:
+            if len(msg.split(" ")) < 2:
+                raise ValueError("Usage: /lookup <query>")
+            _, arg = " ".join(msg.split(" "))
+            return self.search_song_cmd(arg)
+        else:
+            return "Sorry, I didn't get that."
 
     def receive_utterance(self, utterance: Utterance) -> None:
         """Gets called each time there is a new user utterance.
@@ -211,96 +301,26 @@ class MusicAgent(Agent):
             self._dialogue_connector.register_agent_utterance(response)
             return
 
-        if "/login" in cmd:
-            if len(msg.split(" ")) != 2:
-                raise ValueError("Usage: /login <username>")
-            username = msg.split(" ")[1]
-            self.user = MusicDB(get_user(username))
-            result = f"Logged in as {username}"
+        if "/login" in msg or "/register" in msg:
+            result = self.set_user(msg, cmd)
 
-        if "/register" in cmd:
-            username = msg.split(" ")[1]
-            email = msg.split(" ")[2] if len(msg.split(" ")) == 3 else None
-            self.user = MusicDB(add_user(username, email))
-            result = f"Registered as {username}"
-
-        # bot = MusicAgent(self.user)
-
-        if utterance.text[0] == "/":
-            cmd = utterance.text.split(" ")[0]
-            arg = " ".join(utterance.text.split(" ")[1:])
-
-        if "/help" in cmd:
-            result = self.help_cmd()
-
-        elif "/exit" in cmd:
-            result = self.goodbye()
-
-        elif "/add_song" in cmd:
-            if len(msg.split(" ")) != 3:
-                raise ValueError("Usage: /add_song <song_name> <playlist_name>")
-            _, song_name, playlist_name = msg.split(" ")
-            result = self.add_song_cmd(song_name, playlist_name)
-
-        elif "/remove_song" in cmd:
-            if len(msg.split(" ")) != 3:
-                raise ValueError(
-                    "Usage: /remove_song <song_name> <playlist_name>"
-                )
-            _, song_name, playlist_name = msg.split(" ")
-            result = self.remove_song_cmd(song_name, playlist_name)
-
-        elif "/create_playlist" in cmd:
-            if len(msg.split(" ")) != 2:
-                raise ValueError("Usage: /create_playlist <playlist_name>")
-            _, playlist_name = msg.split(" ")
-            result = self.create_playlist_cmd(playlist_name)
-
-        elif "/delete_playlist" in cmd:
-            if len(msg.split(" ")) != 2:
-                raise ValueError("Usage: /delete_playlist <playlist_name>")
-            _, playlist_name = msg.split(" ")
-            result = self.delete_playlist_cmd(playlist_name)
-
-        elif "/list_playlists" in cmd:
-            result = self.list_playlists_cmd()
-
-        elif "/list_songs" in cmd:
-            if len(msg.split(" ")) != 2:
-                raise ValueError("Usage: /list_songs <playlist_name>")
-            _, playlist_name = msg.split(" ")
-            result = self.list_songs_cmd(playlist_name)
-
-        elif "/lookup" in cmd:
-            if len(msg.split(" ")) < 2:
-                raise ValueError("Usage: /lookup <query>")
-            _, arg = " ".join(msg.split(" "))
-            result = self.search_song_cmd(arg)
-
-        if "/" not in msg:
-            requests.post(
-                f"{self._RASA_URI}/conversations/{self.user.user.username}/tracker/events",
-                json={
-                    "event": "slot",
-                    "name": "username",
-                    "value": self.user.user.username,
-                },
+        if "/" in msg:
+            result = self.commands(msg)
+        else:
+            intent, entities = get_entities(
+                msg, self.user.user.playlists.dump()
             )
-            result = requests.post(
-                f"{self._RASA_URI}/webhooks/rest/webhook",
-                json={
-                    "sender": self.user.user.username,
-                    "message": f"({self.user.user.username}) " + utterance.text,
-                },
-            )
-            result = result.json()
+            if not intent:
+                result = "Sorry, I didn't get that."
+            else:
+                result = self.intents[intent](**entities)
             if not isinstance(result, list) or not result:
                 result = "Sorry, I didn't get that."
             else:
                 prettyfy = ""
                 if len(result) > 1:
-                    prettyfy = "\n\t".join([r["text"] for r in result[1:]])
-                result = f"{result[0]['text']}\n\t{prettyfy}"
+                    prettyfy = "\n\t".join([str(r) for r in result[:10]])
+                result = f"{result[0]}\n\t{prettyfy}"
             self.user = MusicDB(get_user(self.user.user.username))
 
         response = AnnotatedUtterance(

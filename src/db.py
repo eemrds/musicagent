@@ -61,7 +61,8 @@ class Songs(list):
         return item_name in [s.title for s in self]
 
     def get(self, item_name) -> Song:
-        return filter(lambda s: s.title == item_name, self)[0]
+        songs = list(filter(lambda s: s.title == item_name, self))
+        return songs[0] if songs else None
 
     def add(self, song: dict) -> "Songs":
         self.append(Song(**song) if isinstance(song, dict) else song)
@@ -116,7 +117,8 @@ class Playlists(list):
         return item_name in [p.name for p in self]
 
     def get(self, item_name) -> Playlist:
-        return list(filter(lambda p: p.name == item_name, self))[0]
+        songs = list(filter(lambda p: p.name == item_name, self))
+        return songs[0] if songs else None
 
     def add(self, playlist: Union[dict, Playlist]) -> "Playlists":
         if isinstance(playlist, Playlist):
@@ -258,11 +260,7 @@ def search_song(song_name: str, artist: Optional[str] = None) -> Song:
         else {"$text": {"$search": song_name}}
     )
 
-    results = list(
-        SONG_COLLECTION.find(query, {"score": {"$meta": "textScore"}}).sort(
-            [("score", {"$meta": "textScore"})]
-        )
-    )
+    results = list(SONG_COLLECTION.find(query))
     if not results:
         return Songs([])
     for result in results:
