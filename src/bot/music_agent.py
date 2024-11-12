@@ -14,6 +14,7 @@ from dialoguekit.core.dialogue_act import DialogueAct
 from dialoguekit.core.utterance import Utterance
 from dialoguekit.participant.agent import Agent
 from dialoguekit.participant.participant import DialogueParticipant
+from collections import Counter
 import requests
 
 from src.db import MusicDB, add_user, get_user, search_song, search_specific_song
@@ -85,36 +86,32 @@ class MusicAgent(Agent):
             Tuple containing the response.
         """
         playlist = self.user.get_playlist(playlist_name)
-        song_specific = search_specific_song(song_name)
+        song_specific = search_song(song_name)
 
-        if song_specific:
-            selected_song = song_specific
+        if len(song_specific) > 1:
+            buttons = [
+                {"title": f"{s.title} by {s.artist}", "payload": f"/add_song_btn {s.title} by {s.artist} to {playlist_name}", "button_type": "button"}
+                for s in song_specific[:5]  # Create buttons for the first 5 songs
+            ]
+            msg = f"Multiple songs found. Please select one:"
+            attachment = {
+                "type": "buttons",
+                "payload": {
+                    "buttons": buttons
+                }
+            }
+            return {
+                "text": msg,
+                "attachments": [attachment]
+            }
+        elif len(song_specific) == 1:
+            selected_song = song_specific[0]
 
             self.user.add_song_to_playlist(selected_song, playlist.name)
             return f"""Song {selected_song} added to {playlist_name}
 
-How about trying asking what albums feature this song by typing:
-Which album features song {selected_song.title}?"""
-
-        song = search_song(song_name)
-        selected_song = None
-
-        if len(song) > 1:
-            song_str = "\n".join(
-                [f"{i+1}. {s.dump()}" for i, s in enumerate(song)]
-            )
-            msg = f"Multiple songs found. Please select one:\n{song_str}"
-            return f"{msg}"
-        elif len(song) == 1:
-            selected_song = song[0]
-        else:
-            return f"Song {song_name} not found", None
-
-        self.user.add_songs_to_playlist(selected_song, playlist.name)
-        return f"""Song {selected_song} added to {playlist_name}
-
-How about trying asking what albums feature this song by typing:
-Which album features song {selected_song.title}?"""
+    How about trying asking what albums feature this song by typing:
+    Which album features song {selected_song.title}?"""
     
     def add_song_artist_cmd(self, song_name: str, artist: str, playlist_name: str) -> str:
         """Adds a song to a playlist.
@@ -128,19 +125,69 @@ Which album features song {selected_song.title}?"""
             Tuple containing the response.
         """
         playlist = self.user.get_playlist(playlist_name)
-        song = search_specific_song(song_name, artist)
+        song = search_song(song_name, artist)
         selected_song = None
 
-        if song:
-            selected_song = song
+        if song is None:
+            return f"""Song {song_name} by {artist} was not found"""
+        elif len(song) > 1:
+            buttons = [
+                {"title": f"{s.title} by {s.artist}", "payload": f"/add_song_btn {s.title} by {s.artist} to {playlist_name}", "button_type": "button"}
+                for s in song[:5]  # Create buttons for the first 5 songs
+            ]
+            msg = f"Multiple songs found. Please select one:"
+            attachment = {
+                "type": "buttons",
+                "payload": {
+                    "buttons": buttons
+                }
+            }
+            return {
+                "text": msg,
+                "attachments": [attachment]
+            }
+        elif len(song) == 1:
+            selected_song = song[0]
 
             self.user.add_song_to_playlist(selected_song, playlist.name)
             return f"""Song {selected_song} added to {playlist_name}
 
-How about trying asking how many albums the artist has released:
+    How about trying asking how many albums the artist has released:
 How many albums has artist {artist} released?"""
-        else:
-            return f"Song {song_name} not found", None
+    
+    def add_song_artist_btn_cmd(self, song_name: str, artist: str, playlist_name: str) -> str:
+        """Adds a song to a playlist.
+
+        Args:
+            song_name: Name of the song.
+            artist: Name of artist
+            playlist_name: Name of the playlist.
+
+        Returns:
+            Tuple containing the response.
+        """
+        playlist = self.user.get_playlist(playlist_name)
+        selected_song = search_specific_song(song_name, artist)
+
+        if (selected_song):
+            self.user.add_song_to_playlist(selected_song, playlist.name)
+            return f"""Song {selected_song} added to {playlist_name}
+
+            How about trying asking how many albums the artist has released:
+How many albums has artist {artist} released?"""
+
+        return f"""Song {selected_song} not found"""
+    
+    def recommend_songs_cmd(self, playlist_name: str) -> dict:
+        playlist = self.user.get_playlist(playlist_name)
+
+        artist_counts = Counter(song.artist for song in playlist.songs if song.artist)
+
+        # Sort by occurrence in descending order and return as a dictionary
+        sorted_artist_counts = dict(sorted(artist_counts.items(), key=lambda item: item[1], reverse=True))
+
+        return sorted_artist_counts
+
 
     def remove_song_cmd(self, song_name: str, playlist_name: str) -> str:
         """Removes a song from a playlist.
@@ -272,6 +319,18 @@ How many albums has artist {artist} released?"""
         elif "/exit" in cmd:
             result = self.goodbye()
 
+        elif "/add_song_btn" in cmd:
+            if len(msg.split(" ")) < 4:
+                # /add_song diamonds by rihanna to playlist2
+                raise ValueError("Usage: /add_song <song_name> to <playlist_name>")
+            args = msg.split(" ", 1)[1]
+            songinfo, playlist_name = args.split(" to ")
+
+            if " by " in songinfo:
+                song_name, artist = songinfo.split(" by ")
+                result = self.add_song_artist_btn_cmd(song_name, artist, playlist_name)
+                
+
         elif "/add_song" in cmd:
             if len(msg.split(" ")) < 4:
                 # /add_song diamonds by rihanna to playlist2
@@ -319,6 +378,14 @@ How many albums has artist {artist} released?"""
                 raise ValueError("Usage: /lookup <query>")
             _, arg = " ".join(msg.split(" "))
             result = self.search_song_cmd(arg)
+
+        elif "/recommend" in cmd:
+            if len(msg.split(" ")) < 2:
+                raise ValueError("Usage: /recommend <playlist_name>")
+            
+            playlist_name = msg.split(" ", 1)[1]
+
+            result = self.recommend_songs_cmd(playlist_name)
 
         if "/" not in msg:
             requests.post(

@@ -275,10 +275,14 @@ class MusicDB:
         # No need to reassign self.user.playlists, it's still a Playlists object
         return self.user.playlists
 
+# USED TO MAKE SEARCHES FLEXIBLE
+import re
+
 def search_specific_song(song_name: str, artist: Optional[str] = None) -> Optional[Song]:
     """Search for a specific song by name, optionally filtering by artist."""
 
     query = {"title": song_name}
+             
     if artist is not None:
         query["artist"] = artist
 
@@ -291,23 +295,40 @@ def search_specific_song(song_name: str, artist: Optional[str] = None) -> Option
     
     return Song(**result)  # Return a single Song object
 
+
 def search_song(song_name: str, artist: Optional[str] = None) -> Song:
     """Search for song by name."""
 
-    query = (
-        {"$text": {"$search": f"{song_name} {artist}"}}
-        if artist
-        else {"$text": {"$search": song_name}}
-    )
+    query = {"title": {"$regex": re.escape(song_name), "$options": "i"}}
+             
+    if artist is not None:
+        query["artist"] = {"$regex": re.escape(artist), "$options": "i"}
 
-    results = list(
-        SONG_COLLECTION.find(query)
-    )
+    results = list(SONG_COLLECTION.find(query))
+    
     if not results:
-        return Songs([])
+        return None
     for result in results:
         result.pop("_id")
     return Songs(results)
+
+# def search_song(song_name: str, artist: Optional[str] = None) -> Song:
+#     """Search for song by name."""
+
+#     query = (
+#         {"$text": {"$search": f"{song_name} {artist}"}}
+#         if artist
+#         else {"$text": {"$search": song_name}}
+#     )
+
+#     results = list(
+#         SONG_COLLECTION.find(query)
+#     )
+#     if not results:
+#         return Songs([])
+#     for result in results:
+#         result.pop("_id")
+#     return Songs(results)
 
 
 def search_album_release(album_name: str) -> str:
