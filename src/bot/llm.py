@@ -1,3 +1,4 @@
+import ast
 import os
 import re
 from ollama import Client
@@ -27,6 +28,10 @@ The possible intents are:
 * list_songs: List songs from a playlist.
 * search_song: Search for a song in a database.
 * recommend_songs: Recommend songs based on songs in a playlist.
+* song_release: Search for release date of a song.
+* artist_album_count: Search for the number of albums by an artist.
+* delete_song_positional: Delete a song from a playlist by position.
+* add_song_positional: Add a song to a playlist by position.
 
 Type the intent in the following format: (intent)
 DO NOT include any other text.
@@ -41,7 +46,14 @@ Examples:
 * Delete Bohemian Rhapsody from rock. (delete_song)
 * List songs in rock. (list_songs)
 * Search for Bohemian Rhapsody. (search_song)
+* Delete Lose Yourself from rock. (delete_song)
 * Recommend songs for rock. (recommend_songs)
+* Search for release date of Bohemian Rhapsody. (song_release)
+* Search for the number of albums by Queen. (artist_album_count)
+* Delete the first song from rock. (delete_song_positional)
+* Delete the last two songs from rock. (delete_song_positional)
+* Search for Bohemian Rhapsody by Queen and add the first result to rock. (add_song_positional)
+* Search for Bohemian Rhapsody by Queen and add the last two results to rock. (add_song_positional)
 """
 
 get_entities_prompt = """
@@ -68,7 +80,72 @@ Examples:
 * Search for Bohemian Rhapsody by Queen. {{"playlist": "", "song": "Bohemian Rhapsody", "artist": "Queen"}}
 * Recommend songs for rock. {{"playlist": "rock", "song": "", "artist": ""}}
 * List songs in rock. {{"playlist": "rock", "song": "", "artist": ""}}
+* When was Free bird released. {{"playlist": "", "song": "Bohemian Rhapsody", "artist": ""}}
+* When was Free bird by Lynyrd Skynyrd released. {{"playlist": "", "song": "Free bird", "artist": "Lynyrd Skynyrd"}}
+* Search for the number of albums by Queen. {{"playlist": "", "song": "", "artist": "Queen"}}
+* Search for songs by Queen. {{"playlist": "", "song": "", "artist": "Queen"}}
+* Delete Lose Yourself from rock. {{"playlist": "rock", "song": "Lose Yourself", "artist": ""}}
+* Delete the first song from rock. {{"playlist": "rock", "song": "", "artist": ""}}
+* Delete the last two songs from rock. {{"playlist": "rock", "song": "", "artist": ""}}
+* Search for Bohemian Rhapsody by Queen and add the first result to rock. {{"playlist": "rock", "song": "", "artist": ""}}
+* Search for Bohemian Rhapsody by Queen and add the last two results to rock. {{"playlist": "rock", "song": "", "artist": ""}}
 """
+
+# positional_entities_prompt = """
+# You are MusicAgent. Your task is to extract the entities from the following input from a user: {inp}.
+# The results of the users playlists are: {playlists}
+
+# Return the entities in a list format. DO NOT include any other text.
+# Type the entities in the following format: [song1, song2]
+
+# Playlist contains the songs in the order they were added.
+
+# 1.
+# Playlist is formatted as ["Travelling Man", "Travelling Through the Dark", "Travelling Light"]
+
+# Examples:
+# * Delete the first song from rock. Playlist: ["Travelling Man", "Travelling Through the Dark", "Travelling Light"]. Answer: ["Travelling Man"]
+# * Delete the last two songs from rock. Playlist: ["Travelling Man", "Travelling Through the Dark", "Travelling Light"]. Answer: ["Travelling Through the Dark", "Travelling Light"]
+# * Search for Travelling and add the first result to rock. Playlist: ["Travelling Man", "Travelling Through the Dark", "Travelling Light"]. Answer: ["Travelling Man"]
+# * Search for Bohemian Rhapsody by Queen and add the last two results to rock. Playlist: ["Travelling Man", "Travelling Through the Dark", "Travelling Light"]. Answer: ["Travelling Through the Dark", "Travelling Light"]
+# * Search for the release date of the first song in rock. Playlist: ["Travelling Man", "Travelling Through the Dark", "Travelling Light"]. Answer: ["Travelling Man"]
+# * Search for the release date of the last song in rock. Playlist: ["Travelling Man", "Travelling Through the Dark", "Travelling Light"]. Answer: ["Travelling Light"]
+
+# 2.
+# Playlist example: ["Stairway to Heaven", "Bohemian Rhapsody", "Free Bird", "American Dream", "Hotel California"]
+
+# Examples:
+# * Delete the first song from rock. Playlist: ["Stairway to Heaven"]
+# * Delete the first two songs from rock. Playlist: ["Stairway to Heaven", "Bohemian Rhapsody"]
+# * Delete the last song from rock. Playlist: ["Hotel California"]
+# * Delete the last two songs from rock. Playlist: ["American Dream", "Hotel California"]
+# * Remove the first three songs from rock. Playlist: ["Stairway to Heaven", "Bohemian Rhapsody", "Free Bird"]
+# * Remove the last three songs from rock. Playlist: ["Free Bird", "American Dream", "Hotel California"]
+# """
+
+positional_entities_prompt = """
+You are MusicAgent. Your task is determine the number of songs from the following input from a user: {inp}.
+
+
+Return the number of songs to delete as an integer in parentheses. DO NOT include any other text.
+Type the entities in the following format: (number)
+
+Examples:
+* Delete the first song from rock. (1)
+* Delete the last two songs from rock. (2)
+* Search for Travelling and add the first result to rock. (1)
+* Search for Bohemian Rhapsody by Queen and add the last two results to rock. (2)
+* Search for the release date of the first song in test. (1)
+* Search for the release date of the last two songs in test. (2)
+"""
+
+
+# Examples:
+# * Delete the first song from rock. Playlist: [{{"title": "Travelling Man", "artist": "DJ Shadow", "album": "Deck Safari}}, {{"title": "Travelling Through the Dark", "artist": "William Stafford", "album": "Traveling Through the Dark"}}, {{"title": "Travelling Light", "artist": "Talib Kweli", "album": "Rocket Ships"}}]. ["Travelling Man"]
+# * Delete the last two songs from rock. Playlist: [{{"title": "Travelling Man", "artist": "DJ Shadow", "album": "Deck Safari}}, {{"title": "Travelling Through the Dark", "artist": "William Stafford", "album": "Traveling Through the Dark"}}, {{"title": "Travelling Light", "artist": "Talib Kweli", "album": "Rocket Ships"}}]. ["Travelling Through the Dark", "Travelling Light"]
+# * Search for Travelling and add the first result to rock. Playlist: [{{"title": "Travelling Man", "artist": "DJ Shadow", "album": "Deck Safari}}, {{"title": "Travelling Through the Dark", "artist": "William Stafford", "album": "Traveling Through the Dark"}}, {{"title": "Travelling Light", "artist": "Talib Kweli", "album": "Rocket Ships"}}]. ["Travelling Man"]
+# * Search for Bohemian Rhapsody by Queen and add the last two results to rock. Playlist: [{{"title": "Travelling Man", "artist": "DJ Shadow", "album": "Deck Safari}}, {{"title": "Travelling Through the Dark", "artist": "William Stafford", "album": "Traveling Through the Dark"}}, {{"title": "Travelling Light", "artist": "Talib Kweli", "album": "Rocket Ships"}}]. ["Travelling Through the Dark", "Travelling Light"]
+# * Search for the release date of the first song in rock. Playlist: [{{"title": "Travelling Man", "artist": "DJ Shadow", "album": "Deck Safari}}, {{"title": "Travelling Through the Dark", "artist": "William Stafford", "album": "Traveling Through the Dark"}}, {{"title": "Travelling Light", "artist": "Talib Kweli", "album": "Rocket Ships"}}]. ["Travelling Man"]
 
 get_questions_prompt = """
 You are MusicAgent. Your task is to extract the intent and entities from the following input from a user: {inp}.
@@ -83,6 +160,23 @@ def get_questions(inp: str) -> str:
 
 def get_intent(inp: str) -> str:
     pass
+
+
+def get_position(inp: str, playlist: list[str]) -> list[str]:
+    try:
+        prompt = positional_entities_prompt.format(inp=inp, playlists=playlist)
+        resp = (
+            ollama.generate(model, prompt)["response"].strip().replace("\n", "")
+        )
+        number = ast.literal_eval((re.search(r"\(.*?\)", resp)).group())
+        if "first" in inp:
+            return playlist[:number]
+        elif "last" in inp:
+            return playlist[-number:]
+
+    except Exception as e:
+        print(e)
+        return []
 
 
 def get_entities(inp: str, playlists: dict) -> tuple[str, dict]:
