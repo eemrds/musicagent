@@ -12,7 +12,7 @@ CLIENT = MongoClient(
 DB = CLIENT["musicDB"]
 USERS_COLLECTION = DB["users"]
 SONG_COLLECTION = DB["songs"]
-
+PLAYLIST_COLLECTION = DB["spotify_songs"]
 
 class Song:
     """Song class"""
@@ -353,6 +353,82 @@ def search_artist(artist_name: str) -> list[dict]:
 #         result.pop("_id")
 #     return Songs(results)
 
+def search_song_artist(artist: str = None) -> Song:
+    """Search for song by name."""
+
+    query = {"artist": artist}
+
+    result = SONG_COLLECTION.find_one(query)
+    
+    if not result:
+        return None  # Return None if no song is found
+
+    result.pop("_id", None)  # Remove _id if present
+    
+    return Song(**result)  # Return a single Song object
+
+def search_song_broad(song_name: str, artist: Optional[str] = None) -> Song:
+    query = {"$text": {"$search": song_name}}
+
+    if artist is not None:
+        artist_query = {"artist": {"$regex": re.escape(artist), "$options": "i"}}
+        # Use $and to combine text search with artist query
+        query = {"$and": [query, artist_query]}
+
+    results = list(
+        SONG_COLLECTION.find(query)
+    )
+
+    if not results:
+        return Songs([])
+    for result in results:
+        result.pop("_id")
+    return Songs(results)
+
+def search_spotify_playlist(playlist_description: str) -> Song:
+    query = {"$text": {"$search": f"{playlist_description}"}}
+
+    results = list(
+        PLAYLIST_COLLECTION.find(query)
+    )
+
+    song_ids = []
+
+    if not results:
+        return None
+    
+    playlist_len = 0
+    
+    for result in results:
+        playlist_len += len(result.get('tracks', []))
+    
+    playlist_len /= len(results)
+        
+    for result in results:
+        if len(song_ids) > playlist_len:
+            break
+        for s in result.get('tracks', [])[:3]:
+            song_ids.append(s)
+    
+    songs = list(SONG_COLLECTION.find({"_id": {"$in": song_ids}}))
+
+    for song in songs:
+        song.pop("_id")
+    return Songs(songs)
+
+def search_song_artist_genre(artist: str = None, genre: str = None) -> Song:
+    """Search for song by name."""
+
+    query = {"artist": artist}
+    query["genre"] = {"$in": [genre]}
+
+    results = list(SONG_COLLECTION.find(query))
+    
+    if not results:
+        return None
+    for result in results:
+        result.pop("_id")
+    return Songs(results)
 
 def search_album_release(album_name: str) -> str:
     """Search for album release year by name."""
