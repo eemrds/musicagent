@@ -327,6 +327,14 @@ def search_song(song_name: str, artist: Optional[str] = None) -> Song:
     return Songs(results)
 
 
+def search_artist(artist_name: str) -> list[dict]:
+    """Search for artist by name."""
+    results = list(SONG_COLLECTION.find({"artist": artist_name}))
+    for result in results:
+        result.pop("_id")
+    return results
+
+
 # def search_song(song_name: str, artist: Optional[str] = None) -> Song:
 #     """Search for song by name."""
 
@@ -394,7 +402,8 @@ def get_user(username) -> User:
     """Get user by username."""
     db_user = USERS_COLLECTION.find_one({"username": username})
     if not db_user:
-        raise ValueError("User not found.")
+        add_user(username, None)
+        db_user = USERS_COLLECTION.find_one({"username": username})
     return User(
         username=db_user["username"],
         email=db_user["email"],

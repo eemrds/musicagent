@@ -32,6 +32,7 @@ The possible intents are:
 * artist_album_count: Search for the number of albums by an artist.
 * delete_song_positional: Delete a song from a playlist by position.
 * add_song_positional: Add a song to a playlist by position.
+* simulate_playlist: Simulator called function to add songs to a playlist.
 
 Type the intent in the following format: (intent)
 DO NOT include any other text.
@@ -54,6 +55,7 @@ Examples:
 * Delete the last two songs from rock. (delete_song_positional)
 * Search for Bohemian Rhapsody by Queen and add the first result to rock. (add_song_positional)
 * Search for Bohemian Rhapsody by Queen and add the last two results to rock. (add_song_positional)
+* Simulate a new playlist called favorites with 5 songs by Coolio. (simulate_playlist)
 """
 
 get_entities_prompt = """
@@ -89,6 +91,8 @@ Examples:
 * Delete the last two songs from rock. {{"playlist": "rock", "song": "", "artist": ""}}
 * Search for Bohemian Rhapsody by Queen and add the first result to rock. {{"playlist": "rock", "song": "", "artist": ""}}
 * Search for Bohemian Rhapsody by Queen and add the last two results to rock. {{"playlist": "rock", "song": "", "artist": ""}}
+* Simulate a new playlist called favorites with 10 songs by Coolio. {{"playlist": "favorites", "song": "", "artist": "Coolio"}}
+* Simulate a playlist called top10 with 3 songs with songs by Queen. {{"playlist": "top10", "song": "", "artist": "Queen"}}
 """
 
 # positional_entities_prompt = """
@@ -123,6 +127,18 @@ Examples:
 # * Remove the last three songs from rock. Playlist: ["Free Bird", "American Dream", "Hotel California"]
 # """
 
+number_entities_prompt = """
+You are MusicAgent. Your task is to extract the number from the following input from a user: {inp}.
+Return the number as an integer. DO NOT include any other text.
+Type the number in the following format: (number)
+
+Examples:
+* Simulate a playlist with 5 songs. (5)
+* Simulate a new playlist called favorites with 10 songs. (10)
+* Simulate a playlist with 15 songs. (15)
+"""
+
+
 positional_entities_prompt = """
 You are MusicAgent. Your task is determine the number of songs from the following input from a user: {inp}.
 
@@ -154,12 +170,16 @@ The possible intents are:
 """
 
 
-def get_questions(inp: str) -> str:
-    pass
+def get_number(inp: str) -> int:
+    try:
+        prompt = number_entities_prompt.format(inp=inp)
+        resp = (
+            ollama.generate(model, prompt)["response"].strip().replace("\n", "")
+        )
+        return int(re.search(r"\(.*?\)", resp).group().strip("()"))
 
-
-def get_intent(inp: str) -> str:
-    pass
+    except Exception as e:
+        return 5
 
 
 def get_position(inp: str, playlist: list[str]) -> list[str]:
@@ -179,7 +199,7 @@ def get_position(inp: str, playlist: list[str]) -> list[str]:
         return []
 
 
-def get_entities(inp: str, playlists: dict) -> tuple[str, dict]:
+def get_entities(inp: str, playlists: dict = {}) -> tuple[str, dict]:
     try:
         intent_prompt = get_intent_prompt.format(inp=inp)
         entities_prompt = get_entities_prompt.format(

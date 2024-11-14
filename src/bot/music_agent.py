@@ -8,6 +8,7 @@ agent.
 
 """
 
+from random import randint
 from typing import List, Optional
 from dialoguekit.core.annotated_utterance import AnnotatedUtterance
 from dialoguekit.core.dialogue_act import DialogueAct
@@ -23,6 +24,7 @@ from src.db import (
     add_user,
     get_user,
     search_album_release,
+    search_artist,
     search_artist_albums,
     search_song,
     search_song_release,
@@ -72,6 +74,7 @@ class MusicAgent(Agent):
             "artist_album_count": self.artist_album_count_cmd,
             "delete_song_positional": self.delete_song_positional_cmd,
             "add_song_positional": self.add_song_positional_cmd,
+            "simulate_playlist": self.simulate_playlist_cmd,
             # "recommend_songs": self.recommend_cmd,
         }
 
@@ -80,6 +83,7 @@ class MusicAgent(Agent):
         utterance = AnnotatedUtterance(
             "Hello, I'm MusicAgent. What can I help u with?",
             participant=DialogueParticipant.AGENT,
+            utterance_id="welcome",
         )
         self._dialogue_connector.register_agent_utterance(utterance)
 
@@ -89,6 +93,7 @@ class MusicAgent(Agent):
             "It was nice talking to you. Bye",
             dialogue_acts=[DialogueAct(intent=self.stop_intent)],
             participant=DialogueParticipant.AGENT,
+            utterance_id="goodbye",
         )
         self._dialogue_connector.register_agent_utterance(utterance)
 
@@ -223,6 +228,23 @@ How many albums has artist {artist} released?"""
         )
 
         return sorted_artist_counts
+
+    def simulate_playlist_cmd(self, **kwargs) -> str:
+        playlist_name = kwargs.get("playlist")
+        artist_name = kwargs.get("artist")
+        playlist = self.user.get_playlist(playlist_name)
+        songs = [song.title for song in playlist.songs]
+
+        found_songs = search_artist(artist_name)
+        found_songs = [
+            song for song in found_songs if song["title"] not in songs
+        ]
+        if not found_songs:
+            return f"All available songs by {artist_name} are already in the playlist."
+
+        song = found_songs[randint(0, len(found_songs) - 1)]
+        self.user.add_song_to_playlist(song, playlist_name)
+        return f"Added \"{song['title']}\" by \"{song['artist']}\" to {playlist_name}"
 
     def remove_song_cmd(self, **kwargs) -> str:
         """Removes a song from a playlist.
@@ -394,6 +416,7 @@ How many albums has artist {artist} released?"""
                 response = AnnotatedUtterance(
                     f"{self._id}: {result}",
                     participant=DialogueParticipant.AGENT,
+                    utterance_id="not_logged_in",
                 )
                 self._dialogue_connector.register_agent_utterance(response)
                 return
@@ -421,6 +444,15 @@ How many albums has artist {artist} released?"""
 
             elif "/exit" in cmd:
                 result = self.goodbye()
+                self._dialogue_connector.register_agent_utterance(
+                    AnnotatedUtterance(
+                        result,
+                        participant=DialogueParticipant.AGENT,
+                        utterance_id="exit",
+                        dialogue_acts=[DialogueAct(intent=self.stop_intent)],
+                    )
+                )
+                return
 
             elif "/add_song_btn" in cmd:
                 if len(msg.split(" ")) < 4:
@@ -512,6 +544,7 @@ How many albums has artist {artist} released?"""
             response = AnnotatedUtterance(
                 str(result),
                 participant=DialogueParticipant.AGENT,
+                utterance_id="response",
             )
             self._dialogue_connector.register_agent_utterance(response)
         except Exception as e:
@@ -519,5 +552,6 @@ How many albums has artist {artist} released?"""
                 AnnotatedUtterance(
                     str("Sorry, I didn't get that."),
                     participant=DialogueParticipant.AGENT,
+                    utterance_id="error",
                 )
             )

@@ -1,0 +1,10 @@
+{
+  "steve": {
+    "name": "steve",
+    "goal": "simulate a new playlist called 'chill' with 10 songs by Pixies",
+    "liked_songs": ["Gangsta's Paradise", "All Star"],
+    "disliked_songs": ["Lose Yourself", "SOS"],
+    "liked_artists": ["Coolio", "Smash Mouth"],
+    "disliked_artists": ["Rihanna"]
+  }
+}

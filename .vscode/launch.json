@@ -13,6 +13,14 @@
             // "justMyCode": false
         },
         {
+            "name": "Debug Simulation",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "src.simulation.run_simulation",
+            "console": "integratedTerminal",
+            // "justMyCode": false
+        },
+        {
             "name": "Debug Rasa",
             "type": "debugpy",
             "request": "launch",
