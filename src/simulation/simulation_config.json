@@ -1,10 +1,26 @@
 {
   "steve": {
     "name": "steve",
-    "goal": "simulate a new playlist called 'chill' with 10 songs by Pixies",
-    "liked_songs": ["Gangsta's Paradise", "All Star"],
-    "disliked_songs": ["Lose Yourself", "SOS"],
-    "liked_artists": ["Coolio", "Smash Mouth"],
-    "disliked_artists": ["Rihanna"]
+    "goal": "simulate a new playlist called 'chill' with 5 songs",
+    "liked_songs": ["Gangsta's Paradise", "All Star", "Ana", "Hey Jude"],
+    "disliked_songs": ["Lose Yourself", "SOS", "Stormy Weather", "I Will Always Love You"],
+    "liked_artists": ["Coolio", "Smash Mouth", "Pixies", "The Beatles"],
+    "disliked_artists": ["Rihanna", "Eminem"]
+  },
+  "harry": {
+    "name": "harry",
+    "goal": "simulate a new playlist called 'workout' with 7 songs",
+    "liked_songs": ["Eye of the Tiger", "Lose Yourself", "Stronger", "Livin' on a Prayer"],
+    "disliked_songs": ["Gangsta's Paradise", "All Star", "Ana", "Hey Jude"],
+    "liked_artists": ["Survivor", "Eminem", "Bon Jovi", "The Freak"],
+    "disliked_artists": ["Coolio", "Smash Mouth"]
+  },
+  "frank": {
+    "name": "frank",
+    "goal": "simulate a new playlist called 'party' with 10 songs",
+    "liked_songs": ["Thubthumping", "Shake It Off", "Dancing Queen"],
+    "disliked_songs": ["Eye of the Tiger", "Lose Yourself", "Stronger", "Livin' on a Prayer"],
+    "liked_artists": ["Chumbawamba", "Taylor Swift", "ABBA"],
+    "disliked_artists": ["Survivor", "Eminem"]
   }
 }

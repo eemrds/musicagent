@@ -32,7 +32,8 @@ The possible intents are:
 * artist_album_count: Search for the number of albums by an artist.
 * delete_song_positional: Delete a song from a playlist by position.
 * add_song_positional: Add a song to a playlist by position.
-* simulate_playlist: Simulator called function to add songs to a playlist.
+* add_artist: Simulator called function to add songs to a playlist.
+* add_song_simulation: Simulator called function to add songs to a playlist.
 
 Type the intent in the following format: (intent)
 DO NOT include any other text.
@@ -55,7 +56,10 @@ Examples:
 * Delete the last two songs from rock. (delete_song_positional)
 * Search for Bohemian Rhapsody by Queen and add the first result to rock. (add_song_positional)
 * Search for Bohemian Rhapsody by Queen and add the last two results to rock. (add_song_positional)
-* Simulate a new playlist called favorites with 5 songs by Coolio. (simulate_playlist)
+* Add artist Queen to rock. (add_artist)
+* Add artist Eminem to top10. (add_artist)
+* Add song Bohemian Rhapsody to rock as simulation. (add_song_simulation)
+* Add song Lose Yourself to rap as simulation. (add_song_simulation)
 """
 
 get_entities_prompt = """
@@ -91,41 +95,11 @@ Examples:
 * Delete the last two songs from rock. {{"playlist": "rock", "song": "", "artist": ""}}
 * Search for Bohemian Rhapsody by Queen and add the first result to rock. {{"playlist": "rock", "song": "", "artist": ""}}
 * Search for Bohemian Rhapsody by Queen and add the last two results to rock. {{"playlist": "rock", "song": "", "artist": ""}}
-* Simulate a new playlist called favorites with 10 songs by Coolio. {{"playlist": "favorites", "song": "", "artist": "Coolio"}}
-* Simulate a playlist called top10 with 3 songs with songs by Queen. {{"playlist": "top10", "song": "", "artist": "Queen"}}
+* Add artist Coolio to playlist chill. {{"playlist": "chill", "song": "", "artist": "Coolio"}}
+* Add artist Queen to playlist top10. {{"playlist": "top10", "song": "", "artist": "Queen"}}
+* Add song Bohemian Rhapsody to rock as simulation. {{"playlist": "rock", "song": "Bohemian Rhapsody", "artist": ""}}
+* Add song Lose Yourself to rap as simulation. {{"playlist": "rap", "song": "Lose Yourself", "artist": ""}}
 """
-
-# positional_entities_prompt = """
-# You are MusicAgent. Your task is to extract the entities from the following input from a user: {inp}.
-# The results of the users playlists are: {playlists}
-
-# Return the entities in a list format. DO NOT include any other text.
-# Type the entities in the following format: [song1, song2]
-
-# Playlist contains the songs in the order they were added.
-
-# 1.
-# Playlist is formatted as ["Travelling Man", "Travelling Through the Dark", "Travelling Light"]
-
-# Examples:
-# * Delete the first song from rock. Playlist: ["Travelling Man", "Travelling Through the Dark", "Travelling Light"]. Answer: ["Travelling Man"]
-# * Delete the last two songs from rock. Playlist: ["Travelling Man", "Travelling Through the Dark", "Travelling Light"]. Answer: ["Travelling Through the Dark", "Travelling Light"]
-# * Search for Travelling and add the first result to rock. Playlist: ["Travelling Man", "Travelling Through the Dark", "Travelling Light"]. Answer: ["Travelling Man"]
-# * Search for Bohemian Rhapsody by Queen and add the last two results to rock. Playlist: ["Travelling Man", "Travelling Through the Dark", "Travelling Light"]. Answer: ["Travelling Through the Dark", "Travelling Light"]
-# * Search for the release date of the first song in rock. Playlist: ["Travelling Man", "Travelling Through the Dark", "Travelling Light"]. Answer: ["Travelling Man"]
-# * Search for the release date of the last song in rock. Playlist: ["Travelling Man", "Travelling Through the Dark", "Travelling Light"]. Answer: ["Travelling Light"]
-
-# 2.
-# Playlist example: ["Stairway to Heaven", "Bohemian Rhapsody", "Free Bird", "American Dream", "Hotel California"]
-
-# Examples:
-# * Delete the first song from rock. Playlist: ["Stairway to Heaven"]
-# * Delete the first two songs from rock. Playlist: ["Stairway to Heaven", "Bohemian Rhapsody"]
-# * Delete the last song from rock. Playlist: ["Hotel California"]
-# * Delete the last two songs from rock. Playlist: ["American Dream", "Hotel California"]
-# * Remove the first three songs from rock. Playlist: ["Stairway to Heaven", "Bohemian Rhapsody", "Free Bird"]
-# * Remove the last three songs from rock. Playlist: ["Free Bird", "American Dream", "Hotel California"]
-# """
 
 number_entities_prompt = """
 You are MusicAgent. Your task is to extract the number from the following input from a user: {inp}.

@@ -77,7 +77,8 @@ class MusicAgent(Agent):
             "artist_album_count": self.artist_album_count_cmd,
             "delete_song_positional": self.delete_song_positional_cmd,
             "add_song_positional": self.add_song_positional_cmd,
-            "simulate_playlist": self.simulate_playlist_cmd,
+            "add_artist": self.simulate_playlist_cmd,
+            "add_song_simulation": self.add_song_simulation_cmd,
             # "recommend_songs": self.recommend_cmd,
         }
 
@@ -107,6 +108,32 @@ class MusicAgent(Agent):
     def goodbye(self) -> str:
         """Exits the chat."""
         return GOODBYE_MESSAGE
+
+    def add_song_simulation_cmd(self, **kwargs) -> str:
+        """Adds a song to a playlist.
+
+        Args:
+            song_name: Name of the song.
+            playlist_name: Name of the playlist.
+
+        Returns:
+            Tuple containing the response.
+        """
+        song_name = kwargs.get("song")
+        playlist_name = kwargs.get("playlist")
+        playlist = self.user.get_playlist(playlist_name)
+        songs = [song.title for song in playlist.songs]
+
+        found_songs = search_artist(song_name)
+        found_songs = [
+            song for song in found_songs if song["title"] not in songs
+        ]
+        if not found_songs:
+            return f"All available songs by {song_name} are already in the playlist."
+
+        song = found_songs[randint(0, len(found_songs) - 1)]
+        self.user.add_song_to_playlist(song, playlist_name)
+        return f"Added \"{song['title']}\" by \"{song['artist']}\" to {playlist_name}"
 
     def add_song_cmd(self, **kwargs) -> str:
         """Adds a song to a playlist.
@@ -431,6 +458,7 @@ How many albums has artist {artist} released?"""
         return f"Playlist {playlist_name} created"
 
     def playlist_desc_cmd(self, playlist_description: str) -> str:
+        self.user = MusicDB(get_user(self.user.user.username))
         self.user.add_playlist(playlist_description)
 
         songs = search_spotify_playlist(playlist_description)
@@ -451,6 +479,7 @@ How many albums has artist {artist} released?"""
         """
         playlist_name = kwargs.get("playlist")
         self.user.remove_playlist(playlist_name)
+        self.user = MusicDB(get_user(self.user.user.username))
         return f"Playlist {playlist_name} deleted"
 
     def list_songs_cmd(self, **kwargs) -> str:
@@ -507,7 +536,7 @@ How many albums has artist {artist} released?"""
         artist = kwargs.get("artist")
         result = search_artist_albums(artist)
         return (
-            f"{artist} has released {len(set(result))} albums. Some are:"
+            f"{artist} has released {len(set(result))} albums. Some are:\n* "
             + "\n* ".join(list(set(result))[:5])
         )
 
@@ -603,15 +632,6 @@ How many albums has artist {artist} released?"""
 
             elif "/exit" in cmd:
                 result = self.goodbye()
-                self._dialogue_connector.register_agent_utterance(
-                    AnnotatedUtterance(
-                        result,
-                        participant=DialogueParticipant.AGENT,
-                        utterance_id="exit",
-                        dialogue_acts=[DialogueAct(intent=self.stop_intent)],
-                    )
-                )
-                return
 
             elif "/add_song_btn" in cmd:
                 if len(msg.split(" ")) < 4:
@@ -731,6 +751,13 @@ How many albums has artist {artist} released?"""
                 participant=DialogueParticipant.AGENT,
                 utterance_id="response",
             )
+            if "/exit" in cmd:
+                response = AnnotatedUtterance(
+                    str(result),
+                    participant=DialogueParticipant.AGENT,
+                    utterance_id="response",
+                    dialogue_acts=[DialogueAct(intent=self.stop_intent)],
+                )
             self._dialogue_connector.register_agent_utterance(response)
         except Exception as e:
             self._dialogue_connector.register_agent_utterance(

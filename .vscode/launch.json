@@ -17,6 +17,10 @@
             "type": "debugpy",
             "request": "launch",
             "module": "src.simulation.run_simulation",
+            "args": [
+                "--num_simulations", "3",
+                "--user", "frank"
+            ],
             "console": "integratedTerminal",
             // "justMyCode": false
         },
